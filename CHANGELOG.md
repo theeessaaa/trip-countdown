@@ -7,6 +7,13 @@ Versions follow [Semantic Versioning](https://semver.org/): **MAJOR.MINOR.PATCH*
 - **MINOR**: new features
 - **PATCH**: small fixes
 
+## [1.2.2] - 2026-11-23
+### Fixed
+- Country flags now show on Windows computers instead of being hidden, using a built-in Twemoji flag font (only loaded when the device has no flag emoji of its own)
+
+### Added
+- Credit for the Twemoji flag artwork (CC BY 4.0) at the bottom of the page
+
 ## [1.2.1] - 2026-11-23
 ### Fixed
 - Countdown numbers overlapping when there are 100+ days left (days now get more room and numbers scale to fit)
