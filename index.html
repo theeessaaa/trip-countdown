@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Trip Countdown">
+<meta name="theme-color" content="#0d5d66">
+<title>Trip Countdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: excited, warm, personal — a traveller ticking off days
+   IDEA: a boarding pass whose flight path fills as departure nears, plus a pair of world clocks
+   PICTURE: the pass — giant ticking digits, route line with a moving plane
+   COLOUR and TYPE: deep lagoon teal field, white pass, sunset coral accent; Archivo + Inter
+   LAYOUT: one column: pass, time check, trips, add form */
+:root{--bg:#0d5d66;--field2:#0a4d55;--pass:#ffffff;--ink:#0f2326;--muted:#5a6e71;--line:#dbe6e5;--accent:#ff6b4a;--on-field:#eaf8f7;--soft:#eef6f5;color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#062a2f;--field2:#041d21;--pass:#10373d;--ink:#eaf6f5;--muted:#9bb9b9;--line:#24525a;--soft:#0b2d32;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#062a2f;--field2:#041d21;--pass:#10373d;--ink:#eaf6f5;--muted:#9bb9b9;--line:#24525a;--soft:#0b2d32;color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background-color:var(--bg);background-repeat:no-repeat;background-size:100% 100%;transition:background-color .6s;color:var(--ink);font:16px/1.55 Inter,-apple-system,system-ui,sans-serif;overflow-x:hidden;min-height:100vh}
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 48px}
+h1{font:800 32px/1.05 Archivo,-apple-system,system-ui,sans-serif;color:var(--on-field);margin:8px 4px 18px}
+h2{font:700 20px/1.2 Archivo,-apple-system,system-ui,sans-serif;color:var(--on-field);margin:30px 4px 12px}
+.card{background:var(--pass);border-radius:22px;box-shadow:0 18px 40px rgba(0,0,0,.25);overflow:hidden;position:relative}
+.pass-top{padding:22px 22px 16px}
+.route{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center}
+.code{font:800 44px/1 Archivo,-apple-system,sans-serif}
+.city{font-size:13px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:8.5em}
+.r{text-align:right}.r .city{margin-left:auto}
+.path{position:relative;height:40px;color:var(--muted)}
+.path svg{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible}
+.plane{position:absolute;top:50%;width:26px;height:26px;margin:-16px 0 0 -13px;transition:left .8s ease;color:var(--accent)}
+.when{display:flex;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;margin-top:14px;font-size:14px;color:var(--muted)}
+.when b{color:var(--ink);font-weight:600}
+.tear{position:relative;border-top:2px dashed var(--line);margin:0 18px}
+.tear:before,.tear:after{content:"";position:absolute;top:-13px;width:24px;height:24px;border-radius:50%;background:var(--bg)}
+.tear:before{left:-31px}.tear:after{right:-31px}
+.clock{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:20px 16px 8px;text-align:center}
+.unit .n{font:800 clamp(32px,12vw,58px)/1 Archivo,-apple-system,sans-serif;font-variant-numeric:tabular-nums}
+.unit:first-child .n{color:var(--accent)}
+.unit .l{font-size:13px;color:var(--muted);margin-top:6px}
+.note{padding:6px 22px 22px;text-align:center;font-size:15px;color:var(--muted)}
+.note b{color:var(--ink)}
+.done .clock{display:none}
+.hurray{display:none;padding:22px;text-align:center;font:800 30px/1.1 Archivo,sans-serif;color:var(--accent)}
+.done .hurray{display:block}
+.times{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;padding:18px 16px}
+.tz{text-align:center;padding:6px 4px}
+.tz .who{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tz .tm{font:800 clamp(26px,9vw,40px)/1.1 Archivo,-apple-system,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap;margin:4px 0}
+.tz .tm small{font-size:.45em;font-weight:700;margin-left:3px}
+.tz .dt{font-size:13px;color:var(--muted);display:flex;gap:5px;justify-content:center;align-items:center}
+.tz .dt svg{width:16px;height:16px;flex:none}
+.gap{background:var(--accent);color:#fff;border-radius:999px;padding:6px 10px;font:700 13px/1.2 Inter,sans-serif;text-align:center;white-space:nowrap}
+.times-note{border-top:1px solid var(--line);padding:12px 18px;font-size:14px;color:var(--muted);text-align:center}
+.list{display:grid;gap:10px}
+.trip{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;background:var(--field2);color:var(--on-field);border-radius:16px;padding:12px 14px;border:2px solid transparent;cursor:pointer;text-align:left;width:100%}
+.trip.on{border-color:var(--accent)}
+.trip .t{font:700 17px/1.2 Archivo,sans-serif}
+.trip .s{font-size:13px;opacity:.8}
+.trip .d{font:800 22px/1 Archivo,sans-serif;white-space:nowrap;text-align:right}
+.trip .d small{display:block;font:500 12px Inter,sans-serif;opacity:.8;margin-top:3px}
+.acts{display:flex;gap:8px;grid-column:1/-1;margin-top:4px}
+.mini{min-height:36px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:transparent;color:var(--on-field);font:500 14px Inter,sans-serif;cursor:pointer}
+form{padding:18px;display:grid;gap:14px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+label{display:grid;gap:6px;font-size:14px;font-weight:500}
+input,select{font:16px Inter,-apple-system,sans-serif;height:48px;padding:0 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--soft);color:var(--ink);width:100%;display:block;-webkit-appearance:none;appearance:none}
+select{padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23ff6b4a' stroke-width='2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+input[type=date],input[type=time]{line-height:48px;text-align:left}
+input::-webkit-date-and-time-value{text-align:left}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--soft);border:1.5px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.seg button{min-height:42px;border:0;border-radius:9px;background:transparent;color:var(--ink);font:600 15px Inter,-apple-system,sans-serif;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:#fff}
+.trip .ph{display:inline-block;font:600 11px Inter,sans-serif;background:var(--accent);color:#fff;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:2px}
+.wx-now{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;padding:18px 18px 12px}
+.wx-now svg{width:56px;height:56px}
+.wx-temp{font:800 40px/1 Archivo,-apple-system,sans-serif}
+.wx-cond{font-size:14px;color:var(--muted)}
+.wx-days{display:flex;gap:8px;overflow-x:auto;padding:4px 18px 16px;-webkit-overflow-scrolling:touch}
+.wx-day{flex:none;width:84px;background:var(--soft);border-radius:14px;padding:10px 6px;text-align:center;border:2px solid transparent}
+.wx-day.key{border-color:var(--accent)}
+.wx-day .tag{font:700 11px Inter,sans-serif;color:var(--accent);min-height:14px}
+.wx-day .dn{font-size:13px;font-weight:600}
+.wx-day svg{width:32px;height:32px;margin:4px auto;display:block}
+.wx-day .hi{font:700 16px Archivo,sans-serif}
+.wx-day .lo,.wx-day .rp{font-size:12px;color:var(--muted)}
+.wx-msg{padding:16px 18px;font-size:14px;color:var(--muted);border-top:1px solid var(--line)}
+.wx-msg:first-child{border-top:0}
+.wx-msg a{color:var(--accent);font-weight:600}
+.map-frame{display:block;width:100%;height:380px;border:0;background:var(--soft)}
+.map-bar{display:grid;gap:10px;padding:14px 18px 16px}
+.map-btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;border-radius:12px;background:var(--accent);color:#fff;font:700 16px Archivo,sans-serif;text-decoration:none}
+.map-bar details{font-size:14px;color:var(--muted)}
+.map-bar summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
+.map-edit{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:8px}
+.map-edit button{min-height:48px;padding:0 16px;border-radius:12px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font:600 15px Inter,sans-serif;cursor:pointer}
+.spark{margin-top:16px;background:var(--field2);color:var(--on-field);border-radius:22px;padding:18px 20px;position:relative}
+.cheer{font:700 21px/1.3 Archivo,-apple-system,sans-serif;margin:0 0 14px}
+.flbl{font:600 13px Inter,sans-serif;color:var(--accent)}
+.ftx{margin:4px 0 12px;font-size:16px;line-height:1.5}
+.more{min-height:40px;padding:0 14px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:transparent;color:var(--on-field);font:600 14px Inter,sans-serif;cursor:pointer}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.fs{flex:none;display:flex;align-items:center;gap:6px;min-height:40px;margin-top:8px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:transparent;color:var(--on-field);font:600 13px Inter,sans-serif;cursor:pointer}
+:fullscreen body,:-webkit-full-screen body{overflow-y:auto}
+.flagbar{position:fixed;top:0;left:0;right:0;height:6px;z-index:5}
+#doneLine{stroke:var(--accent)}
+.rt-path{display:grid;gap:6px;padding:16px 18px 4px;font-size:15px}
+.rt-l{display:inline-block;width:3.2em;color:var(--muted);font-size:13px}
+.rt-row{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;align-items:start;padding:14px 18px}
+.rt-ic{width:40px;height:40px;border-radius:12px;background:var(--soft);display:grid;place-items:center;color:var(--accent)}
+.rt-ic svg{width:24px;height:24px}
+.rt-t{font:800 28px/1.1 Archivo,-apple-system,sans-serif}.rt-t small{font:500 15px Inter,sans-serif;color:var(--muted)}
+.rt-t2{font:700 17px/1.2 Archivo,sans-serif;margin-bottom:2px}
+.wx-msg.tiny{font-size:12px}
+.tl{list-style:none;margin:0;padding:16px 18px 6px}
+.tl li{display:grid;grid-template-columns:100px 18px minmax(0,1fr);gap:10px;align-items:start;padding-bottom:14px;position:relative}
+.tl .tt{font:800 17px/1.2 Archivo,-apple-system,sans-serif;text-align:right;white-space:nowrap}
+.tl .tt small{display:block;font:500 12px/1.4 Inter,sans-serif;color:var(--muted)}
+.tl .tt small.nd{font-weight:700;color:var(--ink)}
+.tl .dot{width:14px;height:14px;border-radius:50%;border:3px solid var(--accent);background:var(--pass);margin-top:3px;position:relative;z-index:1}
+.tl li:last-child .dot{background:var(--accent)}
+.tl li:not(:last-child):after{content:"";position:absolute;left:calc(100px + 10px + 8px);top:18px;bottom:-2px;width:2px;background:var(--line)}
+.tl .what{font-weight:600}.tl .what small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+.sub{font-size:13px;color:var(--muted);font-weight:400}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn{min-height:48px;padding:0 20px;border-radius:12px;border:0;background:var(--accent);color:#fff;font:700 16px Archivo,sans-serif;cursor:pointer;flex:1}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);flex:0 0 auto}
+.hint{font-size:13px;color:var(--on-field);opacity:.8;margin:12px 4px 0}
+.err{color:var(--accent);font-size:14px;min-height:1em;margin:0}
+[hidden]{display:none!important}
+@media(max-width:400px){.row{grid-template-columns:1fr}.code{font-size:36px}}
+@media(prefers-reduced-motion:reduce){.plane{transition:none}}
+</style>
+</head>
+<body>
+<div class="flagbar" id="flagBar" hidden></div>
+<div class="wrap">
+  <div class="top"><h1 id="title">Days until I fly</h1>
+  <button type="button" class="fs" id="fsBtn" hidden aria-label="Full screen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path id="fsIc" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span id="fsTx">Full screen</span></button></div>
+
+  <div class="card" id="pass" aria-live="polite">
+    <div class="pass-top">
+      <div class="route">
+        <div><div class="code" id="fromCode">PH</div><div class="city" id="fromCity">Philippines</div></div>
+        <div class="path" aria-hidden="true">
+          <svg preserveAspectRatio="none" viewBox="0 0 100 40"><line x1="0" y1="20" x2="100" y2="20" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" opacity=".5"/><line id="doneLine" x1="0" y1="20" x2="0" y2="20" stroke="#ff6b4a" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>
+          <svg class="plane" id="plane" viewBox="0 0 24 24" style="left:0%"><path fill="currentColor" d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" transform="rotate(90 12 12)"/></svg>
+        </div>
+        <div class="r"><div class="code" id="toCode">—</div><div class="city" id="toCity">Add a trip</div></div>
+      </div>
+      <div class="when"><span>Departs <b id="depart">—</b></span><span id="retWrap" hidden>Returns <b id="ret">—</b></span><span id="pct"></span></div>
+    </div>
+    <div class="tear"></div>
+    <div class="clock">
+      <div class="unit"><div class="n" id="d">0</div><div class="l">days</div></div>
+      <div class="unit"><div class="n" id="h">00</div><div class="l">hours</div></div>
+      <div class="unit"><div class="n" id="m">00</div><div class="l">minutes</div></div>
+      <div class="unit"><div class="n" id="s">00</div><div class="l">seconds</div></div>
+    </div>
+    <div class="hurray" id="hurray">Bon voyage! ✈</div>
+    <div class="note" id="note"></div>
+  </div>
+
+  <div class="spark" id="spark" hidden>
+    <p class="cheer" id="sparkCheer"></p>
+    <div id="sparkFact"><div class="flbl" id="sparkFactLbl">Did you know?</div><p class="ftx" id="sparkFactTx"></p></div>
+    <button type="button" class="more" id="sparkMore">Show me another</button>
+  </div>
+
+  <h2>Time check</h2>
+  <div class="card">
+    <div class="times">
+      <div class="tz"><div class="who" id="homeWho">Home</div><div class="tm" id="homeTm">--:--</div><div class="dt" id="homeDt"></div></div>
+      <div class="gap" id="gap">—</div>
+      <div class="tz"><div class="who" id="destWho">Destination</div><div class="tm" id="destTm">--:--</div><div class="dt" id="destDt"></div></div>
+    </div>
+    <div class="times-note" id="landNote">Pick a destination to compare times.</div>
+  </div>
+
+  <h2 id="wxTitle">Weather</h2>
+  <div class="card wx" id="wx"><div class="wx-msg">Pick a destination to see its weather.</div></div>
+
+  <h2 id="routeTitle" hidden>Airport to hotel</h2>
+  <div class="card" id="route" hidden></div>
+
+  <h2>My travel map</h2>
+  <div class="card" id="mapCard"></div>
+
+  <h2>My trips</h2>
+  <div class="list" id="list"></div>
+
+  <h2 id="formTitle">Add a trip</h2>
+  <form class="card" id="form" novalidate>
+    <label>Destination country<select id="fDestCC" required><option value="">Choose a country…</option></select></label>
+    <label id="fCityWrap" hidden>City<select id="fCitySel"></select></label>
+    <label id="fCityOther" hidden>Type the city or place<input id="fCity" placeholder="e.g. Hakuba" autocomplete="off"></label>
+    <label>Hotel name or address <span class="sub">(optional)</span><input id="fHotel" placeholder="e.g. Hotel Adlon" autocomplete="off"></label>
+    <label id="fApWrap" hidden>Arrival airport<select id="fApSel"></select></label>
+    <label id="fApOther" hidden>Type the airport name<input id="fAirport" placeholder="e.g. Hakuba Heliport" autocomplete="off"></label>
+    <label id="fDestTzWrap" hidden>Its time zone<select id="fDestTz"></select></label>
+    <label>Flying from<select id="fHomeCC"></select></label>
+    <label id="fHomeTzWrap" hidden>Home city / time zone<select id="fHomeTz"></select></label>
+    <div class="row">
+      <label>Departure date<input id="fDate" type="date" required></label>
+      <label><span>Time <span class="sub" id="timeHint"></span></span><input id="fTime" type="time" value="08:00"></label>
+    </div>
+    <div class="row">
+      <label>Landing date <span class="sub">(optional)</span><input id="fLandDate" type="date"></label>
+      <label><span>Landing time <span class="sub" id="landHint"></span></span><input id="fLandTime" type="time"></label>
+    </div>
+    <div class="seg" role="group" aria-label="Landing time is in">
+      <button type="button" id="lzHome" aria-pressed="true">Home time</button>
+      <button type="button" id="lzDest" aria-pressed="false">Destination time</button>
+    </div>
+    <label>Time to get out of the airport <span class="sub">(immigration, bags, walking)</span><select id="fBuf">
+      <option value="30">30 min (fast, small airport)</option><option value="45">45 min</option><option value="60" selected>1 hour (typical)</option><option value="90">1.5 hours (busy airport)</option><option value="120">2 hours (very busy or peak season)</option></select></label>
+    <div class="seg" role="group" aria-label="Trip type">
+      <button type="button" id="oneWay" aria-pressed="true">One way</button>
+      <button type="button" id="roundTrip" aria-pressed="false">Round trip</button>
+    </div>
+    <div class="row" id="retRow" hidden>
+      <label>Return date<input id="fRetDate" type="date"></label>
+      <label><span>Time <span class="sub" id="retHint"></span></span><input id="fRetTime" type="time" value="18:00"></label>
+    </div>
+    <p class="err" id="err"></p>
+    <div class="btns">
+      <button class="btn" type="submit" id="save">Start countdown</button>
+      <button class="btn ghost" type="button" id="cancel" hidden>Cancel</button>
+    </div>
+  </form>
+  <p class="hint">Trips are saved in this browser on this device. On iPhone, open the link in Safari, tap Share, then “Add to Home Screen”. On Android, use Chrome’s menu, then “Add to Home screen”.</p>
+</div>
+
+<script>
+{
+const RAW=`AF|Afghanistan|Asia/Kabul
+AL|Albania|Europe/Tirane
+DZ|Algeria|Africa/Algiers
+AD|Andorra|Europe/Andorra
+AO|Angola|Africa/Luanda
+AG|Antigua and Barbuda|America/Antigua
+AR|Argentina|America/Argentina/Buenos_Aires
+AM|Armenia|Asia/Yerevan
+AU|Australia|Australia/Sydney=Sydney,Australia/Melbourne=Melbourne,Australia/Brisbane=Brisbane,Australia/Adelaide=Adelaide,Australia/Perth=Perth,Australia/Darwin=Darwin,Australia/Hobart=Hobart
+AT|Austria|Europe/Vienna
+AZ|Azerbaijan|Asia/Baku
+BS|Bahamas|America/Nassau
+BH|Bahrain|Asia/Bahrain
+BD|Bangladesh|Asia/Dhaka
+BB|Barbados|America/Barbados
+BY|Belarus|Europe/Minsk
+BE|Belgium|Europe/Brussels
+BZ|Belize|America/Belize
+BJ|Benin|Africa/Porto-Novo
+BT|Bhutan|Asia/Thimphu
+BO|Bolivia|America/La_Paz
+BA|Bosnia and Herzegovina|Europe/Sarajevo
+BW|Botswana|Africa/Gaborone
+BR|Brazil|America/Sao_Paulo=São Paulo / Rio,America/Manaus=Manaus,America/Rio_Branco=Rio Branco,America/Noronha=Fernando de Noronha
+BN|Brunei|Asia/Brunei
+BG|Bulgaria|Europe/Sofia
+BF|Burkina Faso|Africa/Ouagadougou
+BI|Burundi|Africa/Bujumbura
+CV|Cabo Verde|Atlantic/Cape_Verde
+KH|Cambodia|Asia/Phnom_Penh
+CM|Cameroon|Africa/Douala
+CA|Canada|America/Toronto=Toronto / Montreal,America/Vancouver=Vancouver,America/Edmonton=Calgary / Edmonton,America/Winnipeg=Winnipeg,America/Regina=Regina,America/Halifax=Halifax,America/St_Johns=St. John's
+CF|Central African Republic|Africa/Bangui
+TD|Chad|Africa/Ndjamena
+CL|Chile|America/Santiago=Santiago,Pacific/Easter=Easter Island
+CN|China|Asia/Shanghai
+CO|Colombia|America/Bogota
+KM|Comoros|Indian/Comoro
+CG|Congo|Africa/Brazzaville
+CD|Congo (DR)|Africa/Kinshasa=Kinshasa,Africa/Lubumbashi=Lubumbashi
+CR|Costa Rica|America/Costa_Rica
+CI|Côte d'Ivoire|Africa/Abidjan
+HR|Croatia|Europe/Zagreb
+CU|Cuba|America/Havana
+CY|Cyprus|Asia/Nicosia
+CZ|Czechia|Europe/Prague
+DK|Denmark|Europe/Copenhagen
+DJ|Djibouti|Africa/Djibouti
+DM|Dominica|America/Dominica
+DO|Dominican Republic|America/Santo_Domingo
+EC|Ecuador|America/Guayaquil=Quito / Guayaquil,Pacific/Galapagos=Galápagos
+EG|Egypt|Africa/Cairo
+SV|El Salvador|America/El_Salvador
+GQ|Equatorial Guinea|Africa/Malabo
+ER|Eritrea|Africa/Asmara
+EE|Estonia|Europe/Tallinn
+SZ|Eswatini|Africa/Mbabane
+ET|Ethiopia|Africa/Addis_Ababa
+FJ|Fiji|Pacific/Fiji
+FI|Finland|Europe/Helsinki
+FR|France|Europe/Paris
+GA|Gabon|Africa/Libreville
+GM|Gambia|Africa/Banjul
+GE|Georgia|Asia/Tbilisi
+DE|Germany|Europe/Berlin
+GH|Ghana|Africa/Accra
+GR|Greece|Europe/Athens
+GD|Grenada|America/Grenada
+GU|Guam|Pacific/Guam
+GT|Guatemala|America/Guatemala
+GN|Guinea|Africa/Conakry
+GW|Guinea-Bissau|Africa/Bissau
+GY|Guyana|America/Guyana
+HT|Haiti|America/Port-au-Prince
+HN|Honduras|America/Tegucigalpa
+HK|Hong Kong|Asia/Hong_Kong
+HU|Hungary|Europe/Budapest
+IS|Iceland|Atlantic/Reykjavik
+IN|India|Asia/Kolkata
+ID|Indonesia|Asia/Jakarta=Jakarta,Asia/Makassar=Bali / Makassar,Asia/Jayapura=Jayapura
+IR|Iran|Asia/Tehran
+IQ|Iraq|Asia/Baghdad
+IE|Ireland|Europe/Dublin
+IL|Israel|Asia/Jerusalem
+IT|Italy|Europe/Rome
+JM|Jamaica|America/Jamaica
+JP|Japan|Asia/Tokyo
+JO|Jordan|Asia/Amman
+KZ|Kazakhstan|Asia/Almaty
+KE|Kenya|Africa/Nairobi
+KI|Kiribati|Pacific/Tarawa
+XK|Kosovo|Europe/Belgrade
+KW|Kuwait|Asia/Kuwait
+KG|Kyrgyzstan|Asia/Bishkek
+LA|Laos|Asia/Vientiane
+LV|Latvia|Europe/Riga
+LB|Lebanon|Asia/Beirut
+LS|Lesotho|Africa/Maseru
+LR|Liberia|Africa/Monrovia
+LY|Libya|Africa/Tripoli
+LI|Liechtenstein|Europe/Vaduz
+LT|Lithuania|Europe/Vilnius
+LU|Luxembourg|Europe/Luxembourg
+MO|Macau|Asia/Macau
+MG|Madagascar|Indian/Antananarivo
+MW|Malawi|Africa/Blantyre
+MY|Malaysia|Asia/Kuala_Lumpur
+MV|Maldives|Indian/Maldives
+ML|Mali|Africa/Bamako
+MT|Malta|Europe/Malta
+MH|Marshall Islands|Pacific/Majuro
+MR|Mauritania|Africa/Nouakchott
+MU|Mauritius|Indian/Mauritius
+MX|Mexico|America/Mexico_City=Mexico City,America/Cancun=Cancún,America/Tijuana=Tijuana
+FM|Micronesia|Pacific/Pohnpei
+MD|Moldova|Europe/Chisinau
+MC|Monaco|Europe/Monaco
+MN|Mongolia|Asia/Ulaanbaatar
+ME|Montenegro|Europe/Podgorica
+MA|Morocco|Africa/Casablanca
+MZ|Mozambique|Africa/Maputo
+MM|Myanmar|Asia/Yangon
+NA|Namibia|Africa/Windhoek
+NR|Nauru|Pacific/Nauru
+NP|Nepal|Asia/Kathmandu
+NL|Netherlands|Europe/Amsterdam
+NZ|New Zealand|Pacific/Auckland
+NI|Nicaragua|America/Managua
+NE|Niger|Africa/Niamey
+NG|Nigeria|Africa/Lagos
+KP|North Korea|Asia/Pyongyang
+MK|North Macedonia|Europe/Skopje
+NO|Norway|Europe/Oslo
+OM|Oman|Asia/Muscat
+PK|Pakistan|Asia/Karachi
+PW|Palau|Pacific/Palau
+PS|Palestine|Asia/Hebron
+PA|Panama|America/Panama
+PG|Papua New Guinea|Pacific/Port_Moresby
+PY|Paraguay|America/Asuncion
+PE|Peru|America/Lima
+PH|Philippines|Asia/Manila
+PL|Poland|Europe/Warsaw
+PT|Portugal|Europe/Lisbon=Lisbon,Atlantic/Madeira=Madeira,Atlantic/Azores=Azores
+PR|Puerto Rico|America/Puerto_Rico
+QA|Qatar|Asia/Qatar
+RO|Romania|Europe/Bucharest
+RU|Russia|Europe/Moscow=Moscow / St. Petersburg,Europe/Kaliningrad=Kaliningrad,Asia/Yekaterinburg=Yekaterinburg,Asia/Novosibirsk=Novosibirsk,Asia/Irkutsk=Irkutsk,Asia/Vladivostok=Vladivostok
+RW|Rwanda|Africa/Kigali
+KN|Saint Kitts and Nevis|America/St_Kitts
+LC|Saint Lucia|America/St_Lucia
+VC|Saint Vincent and the Grenadines|America/St_Vincent
+WS|Samoa|Pacific/Apia
+SM|San Marino|Europe/San_Marino
+ST|São Tomé and Príncipe|Africa/Sao_Tome
+SA|Saudi Arabia|Asia/Riyadh
+SN|Senegal|Africa/Dakar
+RS|Serbia|Europe/Belgrade
+SC|Seychelles|Indian/Mahe
+SL|Sierra Leone|Africa/Freetown
+SG|Singapore|Asia/Singapore
+SK|Slovakia|Europe/Bratislava
+SI|Slovenia|Europe/Ljubljana
+SB|Solomon Islands|Pacific/Guadalcanal
+SO|Somalia|Africa/Mogadishu
+ZA|South Africa|Africa/Johannesburg
+KR|South Korea|Asia/Seoul
+SS|South Sudan|Africa/Juba
+ES|Spain|Europe/Madrid=Madrid / Barcelona,Atlantic/Canary=Canary Islands
+LK|Sri Lanka|Asia/Colombo
+SD|Sudan|Africa/Khartoum
+SR|Suriname|America/Paramaribo
+SE|Sweden|Europe/Stockholm
+CH|Switzerland|Europe/Zurich
+SY|Syria|Asia/Damascus
+TW|Taiwan|Asia/Taipei
+TJ|Tajikistan|Asia/Dushanbe
+TZ|Tanzania|Africa/Dar_es_Salaam
+TH|Thailand|Asia/Bangkok
+TL|Timor-Leste|Asia/Dili
+TG|Togo|Africa/Lome
+TO|Tonga|Pacific/Tongatapu
+TT|Trinidad and Tobago|America/Port_of_Spain
+TN|Tunisia|Africa/Tunis
+TR|Türkiye|Europe/Istanbul
+TM|Turkmenistan|Asia/Ashgabat
+TV|Tuvalu|Pacific/Funafuti
+UG|Uganda|Africa/Kampala
+UA|Ukraine|Europe/Kiev
+AE|United Arab Emirates|Asia/Dubai
+GB|United Kingdom|Europe/London
+US|United States|America/New_York=New York / Eastern,America/Chicago=Chicago / Central,America/Denver=Denver / Mountain,America/Phoenix=Phoenix,America/Los_Angeles=Los Angeles / Pacific,America/Anchorage=Alaska,Pacific/Honolulu=Hawaii
+UY|Uruguay|America/Montevideo
+UZ|Uzbekistan|Asia/Tashkent
+VU|Vanuatu|Pacific/Efate
+VA|Vatican City|Europe/Vatican
+VE|Venezuela|America/Caracas
+VN|Vietnam|Asia/Ho_Chi_Minh
+YE|Yemen|Asia/Aden
+ZM|Zambia|Africa/Lusaka
+ZW|Zimbabwe|Africa/Harare`;
+
+const $=id=>document.getElementById(id);
+const okTz=tz=>{try{new Intl.DateTimeFormat('en-US',{timeZone:tz});return true}catch(e){return false}};
+const COUNTRIES=RAW.split('\n').map(l=>{const p=l.split('|');
+  const zones=p[2].split(',').map(z=>{const q=z.split('=');return {tz:q[0],label:q[1]||p[1]}}).filter(z=>okTz(z.tz));
+  return {cc:p[0],name:p[1],zones}}).filter(c=>c.zones.length).sort((a,b)=>a.name.localeCompare(b.name));
+const BY={};COUNTRIES.forEach(c=>BY[c.cc]=c);
+
+const KEY='tripCountdown.v2',OLD='tripCountdown.v1';
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(v){try{localStorage.setItem(KEY,JSON.stringify(v))}catch(e){}}};
+let state=store.get(KEY);
+if(!state){state={trips:[],active:null,home:'PH'};const o=store.get(OLD);
+  if(o&&o.trips)state.trips=o.trips.map(t=>({id:t.id,city:t.dest,destCC:'',destTz:'',homeCC:'PH',homeTz:'Asia/Manila',at:t.at,created:t.created}));}
+let editing=null,round=false;
+const save=()=>store.set(state);
+const pad=n=>String(n).padStart(2,'0');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const FMT={};
+function parts(ts,tz){
+  const f=FMT[tz]||(FMT[tz]=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  const o={};f.formatToParts(new Date(ts)).forEach(p=>{if(p.type!=='literal')o[p.type]=+p.value});
+  if(o.hour===24)o.hour=0;return o;
+}
+function offset(ts,tz){const p=parts(ts,tz);return Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second)-Math.floor(ts/1000)*1000}
+function zoned(y,mo,d,h,mi,tz){const g=Date.UTC(y,mo-1,d,h,mi);let t=g-offset(g,tz);const o2=offset(t,tz);if(g-o2!==t)t=g-o2;return t}
+const fmtTime=(ts,tz)=>new Date(ts).toLocaleTimeString('en-US',{timeZone:tz,hour:'numeric',minute:'2-digit'});
+const fmtDate=(ts,tz)=>new Date(ts).toLocaleDateString('en-US',{timeZone:tz,weekday:'short',month:'short',day:'numeric'});
+const fmtFull=(ts,tz)=>new Date(ts).toLocaleString('en-US',{timeZone:tz||undefined,weekday:'short',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+const fmtShort=(ts,tz)=>new Date(ts).toLocaleDateString('en-US',{timeZone:tz||undefined,month:'short',day:'numeric',year:'numeric'});
+const zoneLabel=(cc,tz)=>{const c=BY[cc];if(!c)return '';const z=c.zones.find(z=>z.tz===tz);return c.zones.length>1&&z?z.label:c.name};
+const destName=t=>t.city||(BY[t.destCC]?BY[t.destCC].name:'Somewhere');
+const homeTzOf=t=>t.homeTz&&okTz(t.homeTz)?t.homeTz:'Asia/Manila';
+const destTzOf=t=>t.destTz&&okTz(t.destTz)?t.destTz:homeTzOf(t);
+const endOf=t=>t.retAt||t.at;
+const phaseOf=(t,now)=>now<t.at?'out':(t.retAt&&now<t.retAt?'away':'done');
+const sorted=()=>state.trips.slice().sort((a,b)=>a.at-b.at);
+function current(){
+  let t=state.trips.find(x=>x.id===state.active);
+  if(!t){const s=sorted(),live=s.filter(x=>endOf(x)>Date.now());t=live[0]||s[s.length-1]||null}
+  return t;
+}
+const SUN='<svg viewBox="0 0 24 24" fill="#ffb020"><circle cx="12" cy="12" r="5"/><g stroke="#ffb020" stroke-width="2" stroke-linecap="round"><path d="M12 1.5v2.5M12 20v2.5M1.5 12H4M20 12h2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></g></svg>';
+const MOON='<svg viewBox="0 0 24 24" fill="#8aa6ff"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>';
+function tile(prefix,tz,who,now){
+  $(prefix+'Who').textContent=who;
+  const t=fmtTime(now,tz).split(' ');
+  $(prefix+'Tm').innerHTML=esc(t[0])+'<small>'+esc(t[1]||'')+'</small>';
+  const h=parts(now,tz).hour;
+  $(prefix+'Dt').innerHTML=(h>=6&&h<18?SUN:MOON)+'<span>'+esc(fmtDate(now,tz))+'</span>';
+}
+function hrs(x){const a=Math.abs(x);return (a%1?a.toFixed(a*4%2?2:1):a)+(a===1?' hr':' hrs')}
+function setCount(ms){const s=Math.floor(ms/1000);
+  $('d').textContent=Math.floor(s/86400);$('h').textContent=pad(Math.floor(s%86400/3600));$('m').textContent=pad(Math.floor(s%3600/60));$('s').textContent=pad(s%60)}
+
+function tick(){
+  const t=current(),pass=$('pass'),now=Date.now();
+  const htz=t?homeTzOf(t):(BY[state.home]?BY[state.home].zones[0].tz:'Asia/Manila');
+  const hcc=t?t.homeCC||'PH':state.home;
+  tile('home',htz,'Home · '+zoneLabel(hcc,htz),now);
+  if(!t){pass.classList.remove('done');$('title').textContent='Days until I fly';
+    $('fromCode').textContent=hcc;$('fromCity').textContent=BY[hcc]?BY[hcc].name:'';
+    $('toCode').textContent='—';$('toCity').textContent='Add a trip';$('depart').textContent='—';$('retWrap').hidden=true;$('pct').textContent='';
+    setCount(0);$('note').innerHTML='Add your next trip below to start counting.';
+    setPlane(0);noDest('Pick a destination to compare times.');return}
+  const name=destName(t),ph=phaseOf(t,now);
+  const homeCode=t.homeCC||'PH',homeLbl=zoneLabel(t.homeCC,htz)||'Home',destCode=t.destCC||'✈';
+  const swap=ph==='away';
+  const hF=flagEmoji(t.homeCC),dF=flagEmoji(t.destCC),hN=(hF?hF+' ':'')+homeLbl,dN=(dF?dF+' ':'')+name;
+  $('fromCode').textContent=swap?destCode:homeCode;$('fromCity').textContent=swap?dN:hN;
+  $('toCode').textContent=swap?homeCode:destCode;$('toCity').textContent=swap?hN:dN;
+  $('depart').textContent=fmtFull(t.at,htz);
+  $('retWrap').hidden=!t.retAt;if(t.retAt)$('ret').textContent=fmtFull(t.retAt,destTzOf(t));
+  if(t.destTz&&okTz(t.destTz)){
+    tile('dest',t.destTz,name,now);
+    const diff=(offset(now,t.destTz)-offset(now,htz))/3600000;
+    $('gap').textContent=diff===0?'Same time':(diff>0?'+':'−')+hrs(diff);
+    let msg=diff===0?'<b>'+esc(name)+'</b> is on the same time as home.':'<b>'+esc(name)+'</b> is '+hrs(diff)+' '+(diff>0?'ahead of':'behind')+' home.';
+    if(ph==='out'&&diff!==0)msg+=' When you take off, it’s '+esc(fmtTime(t.at,t.destTz))+' on '+esc(fmtDate(t.at,t.destTz))+' there.';
+    if(ph==='away'&&diff!==0)msg+=' Your flight home leaves at '+esc(fmtTime(t.retAt,htz))+' '+esc(fmtDate(t.retAt,htz))+' home time.';
+    $('landNote').innerHTML=msg;
+  }else noDest('Edit this trip and choose its country to see the time there.');
+
+  if(ph==='done'){pass.classList.add('done');setPlane(1);$('pct').textContent='';
+    $('title').textContent='Trip complete';
+    $('hurray').textContent=t.retAt?'Welcome home!':'Bon voyage! ✈';
+    $('note').innerHTML=(t.retAt?'Hope <b>'+esc(name)+'</b> was amazing.':'Enjoy <b>'+esc(name)+'</b>!')+' Add your next adventure below.';return}
+  pass.classList.remove('done');
+  if(ph==='out'){
+    const left=t.at-now,prog=Math.min(1,Math.max(0,(now-t.created)/Math.max(1,t.at-t.created)));
+    $('title').textContent='Days until I fly';setCount(left);setPlane(prog);
+    $('pct').textContent=Math.round(prog*100)+'% of the wait done';
+    const days=Math.ceil(left/86400000),wk=Math.floor(days/7);
+    $('note').innerHTML=days<=1?'<b>Almost there!</b> Passport, charger, tickets.':days<=7?'<b>Final week.</b> Time to start packing.':
+      'That’s about <b>'+wk+' week'+(wk===1?'':'s')+'</b>, or '+days+' sleeps to '+esc(name)+'.';
+  }else{
+    const left=t.retAt-now,prog=Math.min(1,Math.max(0,(now-t.at)/Math.max(1,t.retAt-t.at)));
+    $('title').textContent='Time left in '+name;setCount(left);setPlane(prog);
+    $('pct').textContent=Math.round(prog*100)+'% of the trip done';
+    const days=Math.ceil(left/86400000);
+    $('note').innerHTML=days<=1?'<b>Last day.</b> Enjoy every minute, and don’t forget your passport.':
+      'Make it count: <b>'+days+' days</b> left in '+esc(name)+' before you fly home.';
+  }
+}
+function noDest(msg){$('destWho').textContent='Destination';$('destTm').textContent='--:--';$('destDt').innerHTML='';$('gap').textContent='—';$('landNote').textContent=msg}
+function setPlane(p){$('plane').style.left=(p*100)+'%';$('doneLine').setAttribute('x2',p*100)}
+
+function renderList(){
+  const list=$('list'),cur=current(),now=Date.now();
+  if(!state.trips.length){list.innerHTML='<div class="trip" style="cursor:default"><span class="s">No trips yet. Add one below.</span></div>';return}
+  list.innerHTML=sorted().map(t=>{
+    const ph=phaseOf(t,now);let lab;
+    if(ph==='out'){const d=Math.floor((t.at-now)/86400000);lab='<span>'+(d||'<1')+'</span><small>day'+(d===1?'':'s')+' to go</small>'}
+    else if(ph==='away'){const d=Math.floor((t.retAt-now)/86400000);lab='<span>'+(d||'<1')+'</span><small>day'+(d===1?'':'s')+' left</small>'}
+    else lab='<span>Done</span><small>travelled</small>';
+    const where=t.city&&BY[t.destCC]?t.city+', '+BY[t.destCC].name:destName(t);
+    const dates=t.retAt?fmtShort(t.at,homeTzOf(t))+' → '+fmtShort(t.retAt,destTzOf(t)):fmtFull(t.at,homeTzOf(t));
+    return '<div class="trip'+(cur&&cur.id===t.id?' on':'')+'" data-id="'+t.id+'" role="button" tabindex="0">'+
+      '<div><div class="t">'+(flagEmoji(t.destCC)?flagEmoji(t.destCC)+' ':'')+esc(where)+(t.retAt?'<span class="ph">Round trip</span>':'')+'</div><div class="s">'+esc(dates)+'</div></div>'+
+      '<div class="d">'+lab+'</div>'+
+      '<div class="acts"><button class="mini" data-act="edit" type="button">Edit</button><button class="mini" data-act="del" type="button">Delete</button></div></div>'}).join('');
+}
+function render(){renderList();applyTheme();tick();weather();renderSpark();route()}
+
+/* weather (Open-Meteo, no key needed) */
+const WXKEY='tripCountdown.wx';
+const wxGet=()=>{try{return JSON.parse(localStorage.getItem(WXKEY))||{}}catch(e){return {}}};
+const wxSet=v=>{try{localStorage.setItem(WXKEY,JSON.stringify(v))}catch(e){}};
+const IC={
+ sun:'<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="9" fill="#ffb020"/><g stroke="#ffb020" stroke-width="3" stroke-linecap="round"><path d="M24 4v5M24 39v5M4 24h5M39 24h5M9.9 9.9l3.5 3.5M34.6 34.6l3.5 3.5M9.9 38.1l3.5-3.5M34.6 13.4l3.5-3.5"/></g></svg>',
+ part:'<svg viewBox="0 0 48 48"><circle cx="18" cy="18" r="8" fill="#ffb020"/><path d="M16 38h20a8 8 0 0 0 0-16 11 11 0 0 0-21 3 6.5 6.5 0 0 0 1 13z" fill="#b9c8cc"/></svg>',
+ cloud:'<svg viewBox="0 0 48 48"><path d="M13 37h22a9 9 0 0 0 0-18 12 12 0 0 0-23 3 7.5 7.5 0 0 0 1 15z" fill="#9fb2b7"/></svg>',
+ fog:'<svg viewBox="0 0 48 48"><g stroke="#9fb2b7" stroke-width="4" stroke-linecap="round"><path d="M8 16h32M12 24h28M8 32h30"/></g></svg>',
+ rain:'<svg viewBox="0 0 48 48"><path d="M13 30h22a9 9 0 0 0 0-18 12 12 0 0 0-23 3 7.5 7.5 0 0 0 1 15z" fill="#9fb2b7"/><g stroke="#3d8bfd" stroke-width="3" stroke-linecap="round"><path d="M16 35l-2 6M25 35l-2 6M34 35l-2 6"/></g></svg>',
+ snow:'<svg viewBox="0 0 48 48"><path d="M13 30h22a9 9 0 0 0 0-18 12 12 0 0 0-23 3 7.5 7.5 0 0 0 1 15z" fill="#9fb2b7"/><g fill="#7fb6ff"><circle cx="16" cy="38" r="2.5"/><circle cx="25" cy="41" r="2.5"/><circle cx="34" cy="38" r="2.5"/></g></svg>',
+ storm:'<svg viewBox="0 0 48 48"><path d="M13 28h22a9 9 0 0 0 0-18 12 12 0 0 0-23 3 7.5 7.5 0 0 0 1 15z" fill="#7f9399"/><path d="M26 28l-6 10h6l-3 8 9-12h-6l3-6z" fill="#ffb020"/></svg>'};
+function wxInfo(c){
+  if(c===0)return ['Clear','sun'];if(c<=2)return ['Partly cloudy','part'];if(c===3)return ['Cloudy','cloud'];
+  if(c===45||c===48)return ['Foggy','fog'];if(c>=51&&c<=57)return ['Drizzle','rain'];if(c>=61&&c<=67)return ['Rain','rain'];
+  if(c>=71&&c<=77)return ['Snow','snow'];if(c>=80&&c<=82)return ['Rain showers','rain'];if(c===85||c===86)return ['Snow showers','snow'];
+  if(c>=95)return ['Thunderstorms','storm'];return ['—','cloud'];
+}
+const wxPlace=t=>{if(t.geo)return t.geo;if(t.city)return t.city;const z=t.destTz||'';const p=z.split('/');return (p[p.length-1]||'').replace(/_/g,' ')||(BY[t.destCC]?BY[t.destCC].name:'')};
+const ymd=p=>p.year+'-'+pad(p.month)+'-'+pad(p.day);
+function tripDays(t){
+  const tz=destTzOf(t),s=parts(t.at,tz),startUTC=Date.UTC(s.year,s.month-1,s.day);
+  let n=7;if(t.retAt){const e=parts(t.retAt,tz);n=Math.round((Date.UTC(e.year,e.month-1,e.day)-startUTC)/86400000)+1}
+  n=Math.min(Math.max(n,1),30);const out=[];
+  for(let i=0;i<n;i++){const d=new Date(startUTC+i*86400000);out.push(d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate()))}
+  return out;
+}
+let wxBusy=null;
+async function fetchWx(t){
+  const place=wxPlace(t);
+  let r=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name='+encodeURIComponent(place)+(t.destCC?'&countryCode='+t.destCC:''));
+  let g=await r.json();let loc=g.results&&g.results[0];
+  if(!loc&&t.city){const tc=(t.destTz||'').split('/').pop().replace(/_/g,' ');r=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name='+encodeURIComponent(tc)+(t.destCC?'&countryCode='+t.destCC:''));g=await r.json();loc=g.results&&g.results[0]}
+  if(!loc)throw new Error('place');
+  r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+loc.latitude+'&longitude='+loc.longitude+
+    '&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=16');
+  const f=await r.json();if(!f.daily)throw new Error('forecast');
+  return {key:t.id+'|'+place+'|'+t.destCC,place:loc.name,at:Date.now(),cur:f.current,daily:f.daily};
+}
+function ago(ts){const m=Math.round((Date.now()-ts)/60000);if(m<1)return 'just now';if(m<60)return m+' min ago';const h=Math.round(m/60);if(h<48)return h+' hr'+(h===1?'':'s')+' ago';return Math.round(h/24)+' days ago'}
+function drawWx(t,data,note){
+  const box=$('wx'),name=destName(t),days=tripDays(t);
+  $('wxTitle').textContent='Weather in '+name;
+  const link='<a href="https://www.google.com/search?q='+encodeURIComponent('weather '+wxPlace(t))+'" target="_blank" rel="noopener">Check the forecast online</a>';
+  if(!data){box.innerHTML='<div class="wx-msg">'+(note||'Loading weather…')+(note?' '+link+'.':'')+'</div>';return}
+  const ci=wxInfo(data.cur.weather_code);let h='<div class="wx-now">'+IC[ci[1]]+'<div><div class="wx-temp">'+Math.round(data.cur.temperature_2m)+'°C</div><div class="wx-cond">Right now in '+esc(data.place)+' · '+ci[0]+'</div></div></div>';
+  const D=data.daily,idx={};D.time.forEach((d,i)=>idx[d]=i);
+  const shown=days.filter(d=>d in idx);
+  if(shown.length){
+    h+='<div class="wx-days">'+shown.map((d,k)=>{const i=idx[d],w=wxInfo(D.weather_code[i]);
+      const tag=d===days[0]?'Fly out':(t.retAt&&d===days[days.length-1]?'Fly home':'');
+      const dn=new Date(d+'T12:00:00Z').toLocaleDateString('en-US',{timeZone:'UTC',weekday:'short',month:'short',day:'numeric'});
+      return '<div class="wx-day'+(tag?' key':'')+'"><div class="tag">'+tag+'</div><div class="dn">'+dn+'</div>'+IC[w[1]]+
+        '<div class="hi">'+Math.round(D.temperature_2m_max[i])+'°</div><div class="lo">'+Math.round(D.temperature_2m_min[i])+'° low</div>'+
+        (D.precipitation_probability_max[i]!=null?'<div class="rp">'+D.precipitation_probability_max[i]+'% rain</div>':'')+'</div>'}).join('')+'</div>';
+    if(shown.length<days.length)h+='<div class="wx-msg">The rest of your trip will appear as those days come within 16 days.</div>';
+  }else{
+    const s=parts(t.at,destTzOf(t)),un=new Date(Date.UTC(s.year,s.month-1,s.day)-15*86400000);
+    const ud=un.toLocaleDateString('en-US',{timeZone:'UTC',month:'long',day:'numeric'});
+    h+='<div class="wx-msg">'+(days[days.length-1]<D.time[0]?'This trip is over.':'Your trip forecast unlocks on <b>'+ud+'</b>, once it\u2019s within the 16-day forecast.')+'</div>';
+  }
+  h+='<div class="wx-msg">Updated '+ago(data.at)+(note?' · '+note:'')+'</div>';
+  box.innerHTML=h;
+}
+async function weather(force){
+  const t=current();
+  if(!t){$('wxTitle').textContent='Weather';$('wx').innerHTML='<div class="wx-msg">Pick a destination to see its weather.</div>';return}
+  if(!t.destCC){drawWx(t,null,'Edit this trip and choose its country to see the weather.');return}
+  const cache=wxGet(),key=t.id+'|'+wxPlace(t)+'|'+t.destCC,c=cache[t.id]&&cache[t.id].key===key?cache[t.id]:null;
+  if(c)drawWx(t,c);
+  const fresh=c&&Date.now()-c.at<3600000;
+  if(fresh&&!force)return;
+  if(wxBusy===key)return;wxBusy=key;
+  if(!c)drawWx(t,null);
+  try{const d=await fetchWx(t);const all=wxGet();all[t.id]=d;wxSet(all);if(current()&&current().id===t.id)drawWx(t,d)}
+  catch(e){
+    const off=typeof navigator!=='undefined'&&navigator.onLine===false;
+    const msg=off?'You’re offline, showing the last forecast.':e.message==='place'?'Couldn’t find that place. Try editing the city name.':'Live weather couldn’t load here. It works in the downloaded or GitHub copy with internet on.';
+    if(c)drawWx(t,c,off?'offline':'couldn’t refresh');else drawWx(t,null,msg);
+  }finally{wxBusy=null}
+}
+window.addEventListener('online',()=>{weather(true);renderMap();route()});
+window.addEventListener('offline',renderMap);
+
+/* travel map (Google My Maps) */
+const DEFAULT_MID='';
+const midOf=s=>{const m=String(s||'').match(/[?&]mid=([\w-]+)/);return m?m[1]:(/^[\w-]{10,}$/.test(String(s).trim())?String(s).trim():null)};
+function renderMap(){
+  const mid=state.mapMid===''?'':(state.mapMid||DEFAULT_MID),box=$('mapCard');
+  const isFile=location.protocol==='file:'||location.protocol==='content:'||(location.protocol==='https:'&&!/claude|anthropic/i.test(location.hostname)),online=navigator.onLine!==false;
+  const viewer='https://www.google.com/maps/d/viewer?mid='+encodeURIComponent(mid);
+  let h='';
+  if(mid&&isFile&&online)h+='<iframe class="map-frame" title="My travel map" loading="lazy" src="https://www.google.com/maps/d/embed?mid='+encodeURIComponent(mid)+'"></iframe>';
+  h+='<div class="map-bar">';
+  if(mid){
+    if(!isFile)h+='<div class="sub">Tap below to open your map in Google Maps. In the downloaded or GitHub copy, it shows right here.</div>';
+    else if(!online)h+='<div class="sub">You’re offline. Your map will show here once you’re back online.</div>';
+    h+='<a class="map-btn" href="'+viewer+'" target="_blank" rel="noopener">Open my travel map</a>';
+  }else h+='<div class="sub">Paste a Google My Maps link to add your travel map.</div>';
+  h+='<details'+(mid?'':' open')+'><summary>Change map link</summary><div class="map-edit"><input id="mapIn" type="url" placeholder="Paste your Google My Maps link" autocomplete="off"><button type="button" id="mapSave">Save</button></div><p class="err" id="mapErr"></p></details></div>';
+  box.innerHTML=h;
+  $('mapSave').addEventListener('click',()=>{
+    const v=$('mapIn').value.trim();
+    if(!v){state.mapMid='';save();renderMap();return}
+    const m=midOf(v);if(!m){$('mapErr').textContent='That doesn’t look like a Google My Maps link (it should contain mid=).';return}
+    state.mapMid=m;save();renderMap();
+  });
+}
+
+
+/* daily spark: facts + cheer (all built in, works offline) */
+const FACTS={
+AF:["Band-e-Amir, Afghanistan's first national park, is a chain of lakes famous for their vivid blue water."],
+AL:["Albania is dotted with hundreds of thousands of concrete bunkers built during the communist era; some are now cafés and art spaces."],
+DZ:["Algeria is the largest country in Africa by area."],
+AD:["Andorra has two heads of state at once: the President of France and the Bishop of Urgell."],
+AO:["Angola's Kalandula Falls is one of the largest waterfalls in Africa by volume."],
+AG:["Antigua is said to have 365 beaches, one for every day of the year."],
+AR:["Argentina is home to Aconcagua, the highest mountain outside Asia.","Tango was born in the neighbourhoods of Buenos Aires in the late 1800s."],
+AM:["Armenia was the first country to adopt Christianity as its state religion, in 301 AD."],
+AU:["The Great Barrier Reef is the largest coral reef system in the world.","Australia has more than 10,000 beaches. Visit a new one every day and it would take you over 27 years.","Quokkas, often called the happiest animals on Earth, live mainly on Rottnest Island near Perth."],
+AT:["Vienna's Schönbrunn Zoo, opened in 1752, is the oldest zoo still operating in the world."],
+AZ:["Azerbaijan is called the Land of Fire: at Yanar Dag, natural gas flames burn out of the hillside nonstop."],
+BS:["In the Bahamas you can swim with pigs at Big Major Cay in the Exumas."],
+BH:["Bahrain is made up of more than 30 islands."],
+BD:["Cox's Bazar in Bangladesh is one of the longest natural sea beaches in the world, at about 120 km."],
+BB:["Barbados is known as the birthplace of rum, and Mount Gay, founded in 1703, is one of the oldest rum brands still around."],
+BY:["Białowieża Forest, shared by Belarus and Poland, is home to the European bison, Europe's heaviest land animal."],
+BE:["Belgium brews well over 1,000 different beers.","Belgium has one of the highest numbers of chocolatiers per person in the world."],
+BZ:["Belize's Great Blue Hole is a giant underwater sinkhole over 300 metres across."],
+BJ:["Benin is the birthplace of Vodun, celebrated with a national holiday every January."],
+BT:["Bhutan measures its progress with Gross National Happiness."],
+BO:["Bolivia's Salar de Uyuni is the largest salt flat in the world, and after rain it turns into a giant mirror."],
+BA:["In Mostar, divers have jumped from the Old Bridge into the Neretva River for centuries."],
+BW:["Botswana's Okavango Delta is one of the largest inland deltas on Earth."],
+BR:["The Amazon, mostly in Brazil, is the largest tropical rainforest on Earth.","Brazil is the world's biggest coffee producer."],
+BN:["Brunei's Kampong Ayer is a whole village of stilt houses built over the water."],
+BG:["Bulgaria's Rose Valley produces a huge share of the world's rose oil for perfumes."],
+BF:["Burkina Faso hosts FESPACO, Africa's largest film festival."],
+BI:["Burundi sits on Lake Tanganyika, the second-deepest lake in the world."],
+CV:["Cabo Verde is the home of morna music, made famous by singer Cesária Évora."],
+KH:["Angkor Wat in Cambodia is the largest religious monument in the world, and it's on the national flag."],
+CM:["Cameroon is called Africa in miniature for its beaches, deserts, mountains and rainforests."],
+CA:["Canada has the longest coastline of any country in the world.","Canada has more lakes than the rest of the world combined."],
+CF:["Dzanga-Sangha in the Central African Republic is one of the best places to see forest elephants and gorillas."],
+TD:["Chad's Ennedi Plateau has huge natural rock arches and ancient rock art."],
+CL:["Chile's Atacama Desert is one of the driest places on Earth and one of the best for stargazing."],
+CN:["The Great Wall of China, with all its branches, stretches over 21,000 km.","Giant pandas live in the wild only in China."],
+CO:["Colombia has more bird species than any other country on Earth."],
+KM:["Comoros is one of the world's top producers of ylang-ylang, a flower used in perfumes."],
+CG:["Congo's Odzala-Kokoua National Park is home to western lowland gorillas."],
+CD:["The Congo River is the deepest river in the world, over 220 metres deep in places."],
+CR:["Costa Rica abolished its army in 1948.","Costa Rica holds about 5% of the world's biodiversity in a tiny area."],
+CI:["Côte d'Ivoire is the world's biggest producer of cocoa beans, so thank it for your chocolate."],
+HR:["The necktie comes from Croatia: it grew out of the scarves worn by Croatian soldiers in the 1600s."],
+CU:["Cuba's bee hummingbird is the smallest bird in the world."],
+CY:["Legend says Aphrodite was born from the sea at Petra tou Romiou in Cyprus."],
+CZ:["Czechs drink more beer per person than anyone else in the world."],
+DK:["LEGO is Danish. The name comes from leg godt, meaning play well."],
+DJ:["Djibouti's Lake Assal is the lowest point in Africa, about 155 m below sea level."],
+DM:["Dominica's Boiling Lake is one of the largest hot lakes in the world."],
+DO:["Santo Domingo is the oldest continuously inhabited European-founded city in the Americas."],
+EC:["Ecuador's Galápagos Islands helped inspire Darwin's theory of evolution.","Because Earth bulges at the equator, the summit of Ecuador's Chimborazo is the farthest point from Earth's centre."],
+EG:["The Great Pyramid of Giza was the tallest structure built by humans for about 3,800 years."],
+SV:["El Salvador is called the Land of Volcanoes, with more than 20 of them."],
+GQ:["Equatorial Guinea is the only African country where Spanish is an official language."],
+ER:["Asmara's modernist buildings are a UNESCO World Heritage Site."],
+EE:["Skype was developed in Estonia."],
+SZ:["Eswatini is one of the last absolute monarchies in the world."],
+ET:["Ethiopia is considered the birthplace of coffee.","Ethiopia uses its own calendar with 13 months."],
+FJ:["Fiji is made up of more than 300 islands."],
+FI:["Finland has about 3 million saunas for 5.5 million people."],
+FR:["France is the most visited country in the world.","The Eiffel Tower was meant to stand for only 20 years."],
+GA:["Almost 90% of Gabon is covered in rainforest."],
+GM:["The Gambia is the smallest country on mainland Africa."],
+GE:["Georgia has been making wine for about 8,000 years, the oldest known winemaking in the world."],
+DE:["Germany has more than 20,000 castles.","Berlin has more bridges than Venice."],
+GH:["Ghana's Lake Volta is one of the largest artificial lakes in the world."],
+GR:["Greece has around 6,000 islands, but only about 227 have people living on them."],
+GD:["Grenada is the Spice Isle, famous for its nutmeg."],
+GU:["Guam is where America's day begins, since it sits west of the International Date Line."],
+GT:["Guatemala's Tikal was one of the largest cities of the ancient Maya."],
+GN:["Guinea is the source of the Niger River, earning it the nickname West Africa's water tower."],
+GW:["Guinea-Bissau's Bijagós Islands have rare hippos that swim in salt water."],
+GY:["Guyana's Kaieteur Falls is one of the most powerful single-drop waterfalls in the world."],
+HT:["Haiti was the first nation founded by formerly enslaved people, in 1804."],
+HN:["Honduras's Roatán sits on the Mesoamerican Barrier Reef, the second-largest reef system in the world."],
+HK:["Hong Kong has more skyscrapers than any other city in the world.","Hong Kong's Central–Mid-Levels escalator is the longest outdoor covered escalator system in the world."],
+HU:["Budapest sits on more than 100 thermal springs, which is why it's famous for its baths."],
+IS:["Iceland has no mosquitoes.","In Iceland's summer the sun barely sets, and in winter you might see the northern lights."],
+IN:["India has 22 officially recognised languages.","The Taj Mahal seems to change colour through the day, from pink at dawn to gold at sunset."],
+ID:["Indonesia has more than 17,000 islands.","Komodo dragons, the largest lizards on Earth, live only in Indonesia."],
+IR:["Iran produces most of the world's saffron."],
+IQ:["Writing was invented in Mesopotamia, in what's now Iraq, over 5,000 years ago."],
+IE:["Halloween traces back to Samhain, an ancient Irish festival."],
+IL:["The Dead Sea is the lowest point on land, about 430 m below sea level, and you can float in it effortlessly."],
+IT:["Italy has more UNESCO World Heritage Sites than any other country.","Pizza Margherita is said to be named after Queen Margherita of Italy."],
+JM:["Jamaica's Blue Mountain coffee is one of the most prized coffees in the world."],
+JP:["Japan has more than 14,000 islands.","The Shinkansen bullet train is famous for being on time: its average delay is well under a minute.","Japan has nearly 4 million vending machines, selling everything from hot corn soup to umbrellas.","Japan has an official cherry blossom forecast that tracks the bloom as it moves north."],
+JO:["Petra in Jordan was carved into rose-red cliffs over 2,000 years ago."],
+KZ:["Kazakhstan is the largest landlocked country in the world.","Apples are believed to have originated in Kazakhstan, near Almaty."],
+KE:["Kenya's Maasai Mara hosts the Great Migration, with over a million wildebeest on the move."],
+KI:["Kiribati is the only country in all four hemispheres."],
+XK:["Kosovo is one of Europe's youngest countries, declaring independence in 2008."],
+KW:["Kuwait's Failaka Island has ruins from ancient Greek settlers."],
+KG:["Kyrgyzstan's Issyk-Kul is one of the largest mountain lakes in the world, and it never freezes."],
+LA:["The Plain of Jars in Laos is scattered with thousands of mysterious stone jars over 2,000 years old."],
+LV:["Riga has one of the largest collections of Art Nouveau buildings in the world."],
+LB:["Byblos in Lebanon is one of the oldest continuously inhabited cities in the world."],
+LS:["Lesotho is the only country entirely above 1,000 m. Its lowest point is about 1,400 m."],
+LR:["Liberia is Africa's oldest republic, founded in 1847."],
+LY:["More than 90% of Libya is desert."],
+LI:["Liechtenstein is one of only two doubly landlocked countries in the world."],
+LT:["Lithuania was the first Soviet republic to declare independence, in 1990."],
+LU:["Luxembourg was the first country to make all public transport free, in 2020."],
+MO:["Macau mixes Portuguese and Chinese culture, and its egg tarts are legendary."],
+MG:["About 90% of Madagascar's wildlife is found nowhere else on Earth, including its lemurs."],
+MW:["Lake Malawi has more fish species than any other lake in the world."],
+MY:["The Petronas Twin Towers were the world's tallest buildings from 1998 to 2004.","Malaysia's rainforest is home to the Rafflesia, the largest flower in the world."],
+MV:["The Maldives is the lowest-lying country in the world.","Some Maldives beaches glow blue at night from bioluminescent plankton."],
+ML:["Timbuktu was a great centre of learning, famous for its medieval manuscripts."],
+MT:["Malta's Ġgantija temples are older than Stonehenge and the Egyptian pyramids."],
+MH:["The Marshall Islands created one of the largest shark sanctuaries in the world."],
+MR:["Mauritania's Richat Structure, the Eye of the Sahara, is so big astronauts use it as a landmark."],
+MU:["Mauritius was the only home of the dodo."],
+MX:["Mexico gave the world chocolate, chillies and corn.","Mexico City is built on an ancient lake and sinks a little every year."],
+FM:["Micronesia's Nan Madol is an ancient city built on nearly 100 artificial islets."],
+MD:["Moldova's Mileștii Mici holds the largest wine collection in the world, in tunnels about 200 km long."],
+MC:["Monaco is the second-smallest country in the world."],
+MN:["Mongolia is the most sparsely populated country in the world."],
+ME:["The Bay of Kotor in Montenegro is often called Europe's southernmost fjord."],
+MA:["Fez's al-Qarawiyyin, founded in 859, is considered the oldest existing university in the world."],
+MZ:["Mozambique's flag is the only national flag with a modern rifle on it."],
+MM:["Bagan in Myanmar has more than 2,000 ancient temples and pagodas."],
+NA:["The Namib is considered the oldest desert in the world."],
+NR:["Nauru is the smallest island country in the world."],
+NP:["Nepal is home to eight of the world's ten tallest mountains, including Everest.","Nepal's flag is the only national flag that isn't rectangular."],
+NL:["The Netherlands has more bicycles than people."],
+NZ:["New Zealand was the first country to give women the vote, in 1893.","New Zealand has no native land snakes."],
+NI:["Lake Nicaragua is home to bull sharks that swim up from the sea."],
+NE:["Niger's Aïr and Ténéré reserve is one of the largest protected areas in Africa."],
+NG:["Nigeria's film industry, Nollywood, is one of the biggest in the world by number of films."],
+KP:["Mount Paektu is considered the legendary birthplace of the Korean people."],
+MK:["Lake Ohrid is one of Europe's oldest lakes, over a million years old."],
+NO:["Salmon sushi was popularised in Japan by Norway in the 1980s.","In northern Norway the sun doesn't set for weeks in summer."],
+OM:["Oman has traded frankincense for thousands of years."],
+PK:["Pakistan is home to K2, the second-highest mountain in the world."],
+PW:["At Palau's Jellyfish Lake you can swim among millions of stingless jellyfish."],
+PS:["Jericho is one of the oldest continuously inhabited cities in the world."],
+PA:["The Panama Canal lets ships cross between the Atlantic and the Pacific in about 8 to 10 hours."],
+PG:["Papua New Guinea has over 800 languages, more than any other country."],
+PY:["Most people in Paraguay speak Guaraní, an indigenous language."],
+PE:["Peru grows more than 3,000 varieties of potato.","Machu Picchu was built by the Inca in the 1400s."],
+PH:["The Philippines has 7,641 islands."],
+PL:["Poland's Wieliczka Salt Mine has a chapel carved entirely out of salt, chandeliers included."],
+PT:["Portugal produces about half of the world's cork."],
+PR:["Puerto Rico has three bioluminescent bays that glow blue at night."],
+QA:["At Qatar's Khor Al Adaid, the desert meets the sea."],
+RO:["Bucharest's Palace of the Parliament is one of the heaviest buildings in the world."],
+RU:["Russia spans 11 time zones.","Lake Baikal holds about a fifth of the world's unfrozen fresh surface water."],
+RW:["Rwanda banned plastic bags, and once a month the whole country does a clean-up day called Umuganda."],
+KN:["St Kitts has a scenic railway that loops around the island."],
+LC:["Saint Lucia is often said to be the only country named after a woman."],
+VC:["Saint Vincent and the Grenadines includes Mustique, a famous celebrity hideaway."],
+WS:["Samoa skipped a whole day, 30 December 2011, to move to the other side of the date line."],
+SM:["San Marino is the world's oldest surviving republic, founded in 301."],
+ST:["São Tomé and Príncipe sits almost exactly on the equator; there's a marker on Ilhéu das Rolas."],
+SA:["Saudi Arabia has no permanent rivers."],
+SN:["Senegal's Lac Rose gets its pink colour from algae."],
+RS:["Serbia is one of the world's biggest raspberry exporters."],
+SC:["The Seychelles' coco de mer palm has the largest seed in the world."],
+SL:["Sierra Leone's Tacugama sanctuary protects rescued chimpanzees."],
+SG:["Singapore's Changi Airport has the world's tallest indoor waterfall, at 40 metres.","Singapore is one of only three surviving city-states in the world."],
+SK:["Slovakia has one of the highest numbers of castles per person in the world."],
+SI:["More than half of Slovenia is covered by forest."],
+SB:["Marovo Lagoon in the Solomon Islands is one of the largest saltwater lagoons in the world."],
+SO:["Somalia has the longest coastline on mainland Africa."],
+ZA:["South Africa has three capital cities."],
+KR:["The Korean alphabet, Hangul, was created in 1443 and is celebrated with its own national holiday.","Seoul is one of the most connected cities in the world, with fast Wi-Fi even on the subway."],
+SS:["South Sudan is the world's youngest country, independent since 2011."],
+ES:["Spain produces almost half the world's olive oil.","Every August, the town of Buñol hosts La Tomatina, a giant tomato fight."],
+LK:["Sri Lanka is one of the world's biggest tea exporters, famous for Ceylon tea."],
+SD:["Sudan has more pyramids than Egypt."],
+SR:["Suriname is the most forested country in the world, over 90% covered."],
+SE:["Sweden's Icehotel is rebuilt from ice every winter."],
+CH:["Switzerland has enough nuclear bunkers to shelter its whole population."],
+SY:["Damascus is one of the oldest continuously inhabited cities in the world."],
+TW:["Bubble tea was invented in Taiwan in the 1980s.","Taipei 101 was the world's tallest building from 2004 to 2010."],
+TJ:["More than 90% of Tajikistan is mountains."],
+TZ:["Mount Kilimanjaro in Tanzania is the highest mountain in Africa."],
+TH:["Thailand is the only Southeast Asian country never colonised by a European power.","Bangkok's full ceremonial name is one of the longest place names in the world."],
+TL:["Timor-Leste became one of the world's newest countries in 2002."],
+TG:["Togo's Koutammakou is a UNESCO site of mud tower-houses."],
+TO:["Tonga is one of the first places on Earth to see each new day."],
+TT:["The steelpan, a drum made from oil barrels, was invented in Trinidad and Tobago."],
+TN:["In Matmata, Tunisia, people live in homes dug into the ground to stay cool."],
+TR:["Istanbul is the only major city that spans two continents, Europe and Asia.","Cappadocia's sunrise hot-air balloons fill the sky almost every morning."],
+TM:["Turkmenistan's Darvaza crater, nicknamed the Door to Hell, has been burning since 1971."],
+TV:["Tuvalu earns real money from its internet domain, .tv."],
+UG:["Uganda is home to about half the world's mountain gorillas."],
+UA:["Kyiv's Arsenalna is the deepest metro station in the world."],
+AE:["Dubai's Burj Khalifa is the tallest building in the world.","Dubai's police have driven supercars on patrol."],
+GB:["The London Underground, opened in 1863, is the oldest underground railway in the world."],
+US:["Yellowstone, founded in 1872, was the world's first national park.","The US has 63 national parks."],
+UY:["Uruguay won the very first FIFA World Cup, in 1930."],
+UZ:["Samarkand in Uzbekistan was one of the great cities of the Silk Road."],
+VU:["Vanuatu has an underwater post office where you can post a waterproof postcard."],
+VA:["Vatican City is the smallest country in the world."],
+VE:["Venezuela's Angel Falls is the highest uninterrupted waterfall in the world."],
+VN:["Vietnam's Son Doong is the largest cave in the world, big enough to fit a jungle inside.","Vietnam is the world's second-biggest coffee producer."],
+YE:["Yemen's Socotra island is home to the strange umbrella-shaped dragon's blood tree."],
+ZM:["Zambia shares Victoria Falls with Zimbabwe, and you can swim at the edge in Devil's Pool."],
+ZW:["Victoria Falls, shared with Zambia, is known locally as Mosi-oa-Tunya, the smoke that thunders."]
+};
+const CHEER_OUT=[
+"Every sunrise from now is one sunrise closer to {place}.",
+"Future you is already in {place}. Present you just has to get through {days} more days.",
+"Start a little list of things to eat in {place}. You'll thank yourself later.",
+"Long week? Remember: {place} is waiting.",
+"Some people count sheep. You count days to {place}.",
+"Pack your curiosity first. Everything else fits around it.",
+"The best souvenirs are the stories. {place} has some ready for you.",
+"Somewhere in {place} there's a view with your name on it.",
+"Save a little energy today for all the walking you'll do in {place}.",
+"Today's small task: learn how to say thank you in the language of {place}.",
+"Hold on to that feeling. {days} days until it's real.",
+"Work hard now, wander hard later."];
+const CHEER_SOON=["This is the fun part: the bags, the checklist, the excitement.","Charge the power bank, download the offline maps, and breathe. You've got this.","Almost go time. Don't forget your passport!"];
+const CHEER_AWAY=["You made it! Soak up every minute of {place}.","Try one thing today you've never tried before.","Take the photo, then put the phone down and just look.","Get a little lost in {place} today. That's where the best stories are."];
+const CHEER_DONE=["Welcome back! Time to start dreaming about the next one.","Every trip ends, but the next countdown can start right now."];
+let sparkShift=0;
+function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)}
+function renderSpark(){
+  const t=current(),box=$('spark');
+  if(!t){box.hidden=true;return}box.hidden=false;
+  const now=Date.now(),ph=phaseOf(t,now),name=destName(t);
+  const daysLeft=Math.max(0,Math.floor(((ph==='away'?t.retAt:t.at)-now)/86400000));
+  const pool=ph==='done'?CHEER_DONE:ph==='away'?CHEER_AWAY:(daysLeft<=3?CHEER_SOON:CHEER_OUT);
+  const facts=FACTS[t.destCC]||[];
+  const day=Math.floor((now+offset(now,homeTzOf(t)))/86400000),seed=hash(t.id)+day+sparkShift;
+  $('sparkCheer').textContent=pool[seed%pool.length].replace(/\{place\}/g,name).replace(/\{days\}/g,daysLeft);
+  if(facts.length){$('sparkFact').hidden=false;$('sparkFactLbl').textContent='Did you know? · '+flagEmoji(t.destCC)+' '+(BY[t.destCC]?BY[t.destCC].name:name);$('sparkFactTx').textContent=facts[seed%facts.length]}
+  else $('sparkFact').hidden=true;
+}
+$('sparkMore').addEventListener('click',()=>{sparkShift++;renderSpark()});
+
+
+/* destination flag theme */
+const FLAGRAW='AF:000000,d32011,007a36;AL:e41e20,000000;DZ:006233,ffffff,d21034;AD:10069f,fedf00,d50032;AO:cc092f,000000,ffcb00;AG:ce1126,000000,0072c6;AR:74acdf,ffffff,f6b40e;AM:d90012,0033a0,f2a800;AU:012169,e4002b,ffffff;AT:ed2939,ffffff;AZ:0092bc,e4002b,00af66;BS:00abc9,fae042,000000;BH:ce1126,ffffff;BD:006a4e,f42a41;BB:00267f,ffc726,000000;BY:c8313e,4aa657;BE:000000,fdda24,ef3340;BZ:003f87,ce1126;BJ:008751,fcd116,e8112d;BT:ffd520,ff4e12;BO:d52b1e,f9e300,007934;BA:002395,fecb00;BW:75aadb,000000,ffffff;BR:009c3b,ffdf00,002776;BN:f7e017,000000,cf1126;BG:00966e,ffffff,d62612;BF:ef2b2d,009e49,fcd116;BI:ce1126,1eb53a,ffffff;CV:003893,cf2027,f7d116;KH:032ea1,e00025;CM:007a5e,ce1126,fcd116;CA:d52b1e,ffffff;CF:003082,289728,ffce00,d21034;TD:002664,fecb00,c60c30;CL:0039a6,d52b1e,ffffff;CN:ee1c25,ffff00;CO:fcd116,003893,ce1126;KM:3a75c4,fcd116,ce1126,3d8e33;CG:009543,fbde4a,dc241f;CD:007fff,f7d618,ce1021;CR:002b7f,ce1126,ffffff;CI:f77f00,ffffff,009e60;HR:ff0000,171796,ffffff;CU:002a8f,cf142b,ffffff;CY:d57800,ffffff,4e5b31;CZ:11457e,d7141a,ffffff;DK:c8102e,ffffff;DJ:6ab2e7,12ad2b,d7141a;DM:006b3f,fcd116,d41c30;DO:002d62,ce1126;EC:ffdd00,034ea2,ed1c24;EG:ce1126,000000,c09300;SV:0f47af,ffffff;GQ:3e9a00,e32118,0073ce;ER:4189dd,12ad2b,ea0437,ffc726;EE:0072ce,000000;SZ:3e5eb9,ffd900,b10c0c;ET:078930,fcdd09,da121a,0f47af;FJ:68bfe5,002868,ce1126;FI:002f6c,ffffff;FR:002654,ffffff,ed2939;GA:009e60,fcd116,3a75c4;GM:ce1126,0c1c8c,3a7728;GE:ff0000,ffffff;DE:000000,dd0000,ffce00;GH:006b3f,fcd116,ce1126;GR:0d5eaf,ffffff;GD:ce1126,007a5e,fcd116;GU:00297b,c62139;GT:4997d0,ffffff;GN:ce1126,fcd116,009460;GW:ce1126,fcd116,009e49;GY:009e49,fcd116,ce1126;HT:00209f,d21034;HN:0073cf,ffffff;HK:de2910,ffffff;HU:ce2939,ffffff,477050;IS:02529c,dc1e35,ffffff;IN:ff9933,ffffff,138808,000080;ID:ff0000,ffffff;IR:239f40,ffffff,da0000;IQ:ce1126,ffffff,000000,007a3d;IE:169b62,ffffff,ff883e;IL:0038b8,ffffff;IT:009246,ffffff,ce2b37;JM:009b3a,fed100,000000;JP:bc002d,ffffff;JO:000000,007a3d,ce1126;KZ:00afca,fec50c;KE:000000,bb0000,006600;KI:ce1126,003f87,fcd116;XK:244aa5,d0a650;KW:007a3d,ce1126,000000;KG:e8112d,ffef00;LA:ce1126,002868,ffffff;LV:9e3039,ffffff;LB:ed1c24,00a651,ffffff;LS:00209f,009543,000000;LR:bf0a30,002868,ffffff;LY:e70013,000000,239e46;LI:002b7f,ce1126,ffd83d;LT:fdb913,006a44,c1272d;LU:00a1de,ed2939,ffffff;MO:00785e,ffffff;MG:fc3d32,007e3a,ffffff;MW:ce1126,000000,339e35;MY:010066,cc0001,ffcc00;MV:d21034,007e3a,ffffff;ML:14b53a,fcd116,ce1126;MT:cf142b,ffffff;MH:003893,dd7500,ffffff;MR:006233,ffc400,d01c1f;MU:ea2839,1a206d,ffd500,00a551;MX:006847,ffffff,ce1126;FM:75b2dd,ffffff;MD:0046ae,ffd200,cc092f;MC:ce1126,ffffff;MN:c4272f,015197,f9cf02;ME:c40308,d4af3a;MA:c1272d,006233;MZ:007168,000000,fce100,d21034;MM:fecb00,34b233,ea2839;NA:003580,d21034,009543;NR:002b7f,ffc61e;NP:dc143c,003893;NL:21468b,ffffff,ae1c28;NZ:00247d,cc142b,ffffff;NI:0067c6,ffffff;NE:e05206,ffffff,0db02b;NG:008751,ffffff;KP:024fa2,ed1c27,ffffff;MK:d20000,ffe600;NO:ba0c2f,00205b,ffffff;OM:db161b,008000,ffffff;PK:01411c,ffffff;PW:0099ff,ffde00;PS:000000,ffffff,009639,ed2e38;PA:d21034,005293,ffffff;PG:ce1126,000000,fcd116;PY:d52b1e,0038a8,ffffff;PE:d91023,ffffff;PH:0038a8,ce1126,fcd116,ffffff;PL:dc143c,ffffff;PT:006600,ff0000,ffcc00;PR:0050f0,ed0000,ffffff;QA:8a1538,ffffff;RO:002b7f,fcd116,ce1126;RU:0039a6,d52b1e,ffffff;RW:00a1de,fad201,20603d;KN:009e49,000000,ce1126,fcd116;LC:66ccff,fcd116,000000;VC:0072c6,fcd116,009e60;WS:ce1126,002b7f;SM:5eb6e4,ffffff;ST:12ad2b,ffce00,d21034;SA:006c35,ffffff;SN:00853f,fdef42,e31b23;RS:c6363c,0c4076,ffffff;SC:003f87,fcd856,d62828,007a3d;SL:1eb53a,ffffff,0072c6;SG:ef3340,ffffff;SK:0b4ea2,ee1c25,ffffff;SI:005da4,ed1c24,ffffff;SB:0051ba,215b33,fcd116;SO:4189dd,ffffff;ZA:007749,001489,e03c31,ffb612;KR:cd2e3a,0047a0,ffffff;SS:078930,000000,da121a,0f47af;ES:aa151b,f1bf00;LK:8d153a,ffbe29,eb7400,00534e;SD:d21034,007229,000000;SR:377e3f,b40a2d,ecc81d;SE:006aa7,fecc00;CH:da291c,ffffff;SY:ce1126,000000,007a3d;TW:fe0000,000095,ffffff;TJ:cc0000,006600,f8c300;TZ:1eb53a,00a3dd,fcd116,000000;TH:2d2a4a,a51931,f4f5f8;TL:dc241f,ffc726,000000;TG:006a4e,ffce00,d21034;TO:c10000,ffffff;TT:ce1126,000000,ffffff;TN:e70013,ffffff;TR:e30a17,ffffff;TM:00843d,d22630,ffffff;TV:009fca,012169,ffce00;UG:d90000,fcdc04,000000;UA:0057b7,ffd700;AE:00732f,ffffff,000000,ff0000;GB:012169,c8102e,ffffff;US:0a3161,b31942,ffffff;UY:0038a8,ffffff,fcd116;UZ:0099b5,1eb53a,ffffff,ce1126;VU:d21034,009543,000000,fdce12;VA:ffe000,ffffff;VE:003893,ffcc00,cf142b;VN:da251d,ffff00;YE:ce1126,ffffff,000000;ZM:198a00,de2010,000000,ef7d00;ZW:006400,ffd200,d40000,000000';
+const FLAGS={};FLAGRAW.split(';').forEach(p=>{const q=p.split(':');FLAGS[q[0]]=q[1].split(',')});
+const flagEmoji=cc=>/^[A-Z]{2}$/.test(cc||'')?String.fromCodePoint(...[...cc].map(c=>127397+c.charCodeAt(0))):'';
+const rgb=h=>[0,2,4].map(i=>parseInt(h.substr(i,2),16));
+const hex=a=>'#'+a.map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+const lum=a=>{const f=a.map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*f[0]+.7152*f[1]+.0722*f[2]};
+const DARK=[6,14,18];
+function deep(h,max){let c=rgb(h),k=.62,m;do{m=c.map((v,i)=>v*k+DARK[i]*(1-k));k-=.04}while(lum(m)>max&&k>.05);return m}
+function sat(a){const mx=Math.max(...a),mn=Math.min(...a);return mx?(mx-mn)/mx:0}
+let themeCC=null;
+function applyTheme(){
+  const t=current(),cc=t&&FLAGS[t.destCC]?t.destCC:null,root=document.documentElement,bar=$('flagBar');
+  if(cc===themeCC)return;themeCC=cc;
+  const meta=document.querySelector('meta[name=theme-color]');
+  if(!cc){['--bg','--field2','--accent'].forEach(v=>root.style.removeProperty(v));document.body.style.backgroundImage='';bar.style.background='';bar.hidden=true;if(meta)meta.content='#0d5d66';return}
+  const cols=FLAGS[cc],d=cols.map(c=>hex(deep(c,.06)));
+  const bg=d[0],field=hex(deep(cols[0],.025));
+  const cand=cols.map(rgb).filter(a=>sat(a)>.45&&lum(a)>.05&&lum(a)<.45).sort((a,b)=>sat(b)-sat(a));
+  root.style.setProperty('--bg',bg);root.style.setProperty('--field2',field);
+  root.style.setProperty('--accent',cand.length?hex(cand[0]):'#ff6b4a');
+  const stops=d.length===1?[d[0],d[0]]:d;
+  document.body.style.backgroundImage='linear-gradient(172deg,'+stops[0]+' 0%,'+stops[0]+' 34%,'+stops.slice(1).map((c,i)=>c+' '+Math.round(60+i*40/Math.max(1,stops.length-2))+'%').join(',')+')';
+  const n=cols.length;bar.style.background='linear-gradient(90deg,'+cols.map((c,i)=>'#'+c+' '+(i*100/n)+'%,#'+c+' '+((i+1)*100/n)+'%').join(',')+')';bar.hidden=false;
+  if(meta)meta.content=bg;
+}
+
+
+/* popular cities per country: Name[~geocode name][@tz] */
+const CITYRAW=`PH:Manila,Cebu,Boracay~Malay,El Nido,Coron,Puerto Princesa,Bohol~Tagbilaran,Siargao~General Luna,Davao,Baguio,Iloilo
+JP:Tokyo,Osaka,Kyoto,Sapporo,Fukuoka,Nagoya,Okinawa~Naha,Hiroshima,Nara,Hakone,Yokohama
+KR:Seoul,Busan,Jeju,Incheon,Gyeongju
+CN:Beijing,Shanghai,Guangzhou,Shenzhen,Chengdu,Xi'an,Hangzhou,Guilin
+TW:Taipei,Kaohsiung,Taichung,Tainan,Hualien
+TH:Bangkok,Phuket,Chiang Mai,Pattaya,Krabi,Koh Samui~Ko Samui,Chiang Rai,Hua Hin
+VN:Hanoi,Ho Chi Minh City,Da Nang,Hoi An,Nha Trang,Phu Quoc~Duong Dong,Ha Long,Sapa~Sa Pa,Da Lat
+SG:Singapore
+MY:Kuala Lumpur,Penang~George Town,Langkawi,Kota Kinabalu,Malacca,Kuching,Ipoh
+ID:Bali~Denpasar@Asia/Makassar,Jakarta@Asia/Jakarta,Yogyakarta@Asia/Jakarta,Bandung@Asia/Jakarta,Lombok~Mataram@Asia/Makassar,Labuan Bajo@Asia/Makassar,Surabaya@Asia/Jakarta,Jayapura@Asia/Jayapura
+KH:Phnom Penh,Siem Reap,Sihanoukville
+LA:Vientiane,Luang Prabang,Vang Vieng
+MM:Yangon,Mandalay,Bagan~Nyaung-U
+IN:New Delhi,Mumbai,Goa~Panaji,Jaipur,Agra,Bengaluru,Kochi,Chennai,Varanasi,Udaipur
+NP:Kathmandu,Pokhara
+LK:Colombo,Kandy,Galle,Ella,Sigiriya
+MV:Malé
+AE:Dubai,Abu Dhabi,Sharjah
+QA:Doha
+SA:Riyadh,Jeddah,Mecca,Medina,AlUla
+TR:Istanbul,Cappadocia~Göreme,Antalya,Ankara,Izmir,Bodrum,Pamukkale
+IL:Jerusalem,Tel Aviv,Eilat
+JO:Amman,Petra~Wadi Musa,Aqaba
+EG:Cairo,Luxor,Aswan,Sharm El Sheikh,Hurghada,Alexandria
+MA:Marrakech,Casablanca,Fez,Chefchaouen,Tangier
+ZA:Cape Town,Johannesburg,Durban
+KE:Nairobi,Mombasa,Maasai Mara~Narok
+TZ:Zanzibar,Dar es Salaam,Arusha
+GB:London,Edinburgh,Manchester,Liverpool,Oxford,Bath,Glasgow
+IE:Dublin,Galway,Cork
+FR:Paris,Nice,Lyon,Marseille,Bordeaux,Strasbourg
+IT:Rome,Venice,Florence,Milan,Naples,Amalfi,Como,Pisa,Sicily~Palermo
+ES:Madrid@Europe/Madrid,Barcelona@Europe/Madrid,Seville@Europe/Madrid,Valencia@Europe/Madrid,Granada@Europe/Madrid,Ibiza@Europe/Madrid,Mallorca~Palma@Europe/Madrid,Tenerife~Santa Cruz de Tenerife@Atlantic/Canary,Gran Canaria~Las Palmas@Atlantic/Canary
+PT:Lisbon@Europe/Lisbon,Porto@Europe/Lisbon,Algarve~Faro@Europe/Lisbon,Sintra@Europe/Lisbon,Madeira~Funchal@Atlantic/Madeira,Azores~Ponta Delgada@Atlantic/Azores
+DE:Berlin,Munich,Frankfurt,Hamburg,Cologne,Heidelberg
+NL:Amsterdam,Rotterdam,The Hague,Utrecht
+BE:Brussels,Bruges,Antwerp,Ghent
+CH:Zurich,Geneva,Lucerne,Interlaken,Zermatt,Bern
+AT:Vienna,Salzburg,Innsbruck,Hallstatt
+CZ:Prague,Český Krumlov
+HU:Budapest
+GR:Athens,Santorini~Fira,Mykonos,Crete~Heraklion,Rhodes,Thessaloniki
+HR:Dubrovnik,Split,Zagreb,Hvar
+PL:Warsaw,Krakow,Gdansk
+NO:Oslo,Bergen,Tromsø,Lofoten~Svolvær
+SE:Stockholm,Gothenburg,Kiruna
+DK:Copenhagen,Aarhus
+FI:Helsinki,Rovaniemi
+IS:Reykjavik
+RU:Moscow@Europe/Moscow,St. Petersburg~Saint Petersburg@Europe/Moscow,Kaliningrad@Europe/Kaliningrad,Yekaterinburg@Asia/Yekaterinburg,Novosibirsk@Asia/Novosibirsk,Irkutsk@Asia/Irkutsk,Vladivostok@Asia/Vladivostok
+US:New York@America/New_York,Los Angeles@America/Los_Angeles,San Francisco@America/Los_Angeles,Las Vegas@America/Los_Angeles,Seattle@America/Los_Angeles,Chicago@America/Chicago,Orlando@America/New_York,Miami@America/New_York,Washington DC~Washington@America/New_York,Boston@America/New_York,New Orleans@America/Chicago,Houston@America/Chicago,Denver@America/Denver,Phoenix@America/Phoenix,Honolulu@Pacific/Honolulu,Anchorage@America/Anchorage
+CA:Toronto@America/Toronto,Vancouver@America/Vancouver,Montreal@America/Toronto,Quebec City~Quebec@America/Toronto,Calgary@America/Edmonton,Banff@America/Edmonton,Winnipeg@America/Winnipeg,Halifax@America/Halifax,St. John's@America/St_Johns
+AU:Sydney@Australia/Sydney,Melbourne@Australia/Melbourne,Brisbane@Australia/Brisbane,Gold Coast@Australia/Brisbane,Cairns@Australia/Brisbane,Perth@Australia/Perth,Adelaide@Australia/Adelaide,Darwin@Australia/Darwin,Hobart@Australia/Hobart
+NZ:Auckland,Queenstown,Wellington,Christchurch,Rotorua
+MX:Mexico City@America/Mexico_City,Cancún~Cancun@America/Cancun,Tulum@America/Cancun,Playa del Carmen@America/Cancun,Guadalajara@America/Mexico_City,Oaxaca@America/Mexico_City,Tijuana@America/Tijuana
+BR:Rio de Janeiro@America/Sao_Paulo,São Paulo~Sao Paulo@America/Sao_Paulo,Salvador@America/Sao_Paulo,Florianópolis~Florianopolis@America/Sao_Paulo,Foz do Iguaçu~Foz do Iguacu@America/Sao_Paulo,Manaus@America/Manaus,Rio Branco@America/Rio_Branco,Fernando de Noronha@America/Noronha
+AR:Buenos Aires,Mendoza,Bariloche~San Carlos de Bariloche,Ushuaia,Córdoba~Cordoba
+CL:Santiago@America/Santiago,Valparaíso~Valparaiso@America/Santiago,San Pedro de Atacama@America/Santiago,Easter Island~Hanga Roa@Pacific/Easter
+PE:Lima,Cusco,Arequipa
+CO:Bogotá~Bogota,Cartagena,Medellín~Medellin
+EC:Quito@America/Guayaquil,Guayaquil@America/Guayaquil,Galápagos~Puerto Ayora@Pacific/Galapagos
+CD:Kinshasa@Africa/Kinshasa,Lubumbashi@Africa/Lubumbashi
+KZ:Almaty,Astana
+UA:Kyiv,Lviv,Odesa
+XK:Pristina,Prizren
+PS:Bethlehem,Ramallah,Jericho
+VA:Vatican City~Vatican
+CM:Yaoundé~Yaounde,Douala
+BJ:Cotonou,Porto-Novo
+CR:San José~San Jose,La Fortuna
+CU:Havana,Varadero,Trinidad
+DO:Punta Cana,Santo Domingo
+FJ:Nadi,Suva
+GU:Hagåtña~Hagatna,Tumon
+MU:Port Louis,Grand Baie
+SC:Mahé~Victoria
+PW:Koror
+MN:Ulaanbaatar
+UZ:Tashkent,Samarkand,Bukhara
+GE:Tbilisi,Batumi
+BN:Bandar Seri Begawan
+TL:Dili`;
+const CITIES={};
+CITYRAW.split('\n').forEach(l=>{const i=l.indexOf(':'),cc=l.slice(0,i);if(!BY[cc])return;
+  CITIES[cc]=l.slice(i+1).split(',').map(x=>{const at=x.split('@'),ng=at[0].split('~');return {name:ng[0],geo:ng[1]||'',tz:at[1]&&okTz(at[1])?at[1]:''}})});
+function citiesOf(cc){const c=BY[cc];if(!c)return [];
+  if(CITIES[cc])return CITIES[cc].map(x=>({name:x.name,geo:x.geo,tz:x.tz||c.zones[0].tz}));
+  if(c.zones.length>1)return c.zones.map(z=>({name:z.label.split(' / ')[0],geo:'',tz:z.tz}));
+  return [{name:c.zones[0].tz.split('/').pop().replace(/_/g,' '),geo:'',tz:c.zones[0].tz}];
+}
+function fillCities(keepName){
+  const cc=$('fDestCC').value,sel=$('fCitySel'),list=citiesOf(cc);
+  if(!cc){$('fCityWrap').hidden=true;$('fCityOther').hidden=true;$('fDestTzWrap').hidden=true;return}
+  sel.innerHTML=list.map((c,i)=>'<option value="'+i+'">'+esc(c.name)+'</option>').join('')+'<option value="other">Other (type it)</option>';
+  $('fCityWrap').hidden=false;
+  let idx=0;if(keepName!==undefined){const k=list.findIndex(c=>c.name===keepName);idx=keepName===''?0:(k>=0?k:'other')}
+  sel.value=String(idx);cityMode(keepName&&idx==='other'?keepName:'');
+}
+function cityMode(text){
+  const other=$('fCitySel').value==='other';
+  $('fCityOther').hidden=!other;if(other&&text!==undefined)$('fCity').value=text;
+  const c=BY[$('fDestCC').value];$('fDestTzWrap').hidden=!(other&&c&&c.zones.length>1);
+}
+
+
+/* airport -> hotel (Photon geocoding + OSRM driving route, OpenStreetMap data) */
+const RIDE={PH:'Grab, JoyRide',MY:'Grab',SG:'Grab, Gojek, TADA',TH:'Grab, Bolt',VN:'Grab, Xanh SM, Be',ID:'Grab, Gojek',KH:'Grab, PassApp',MM:'Grab',LA:'LOCA',
+JP:'GO, Uber',KR:'Kakao T',CN:'DiDi',HK:'Uber',TW:'Uber',IN:'Uber, Ola',LK:'PickMe, Uber',NP:'Pathao, inDrive',BD:'Uber, Pathao',PK:'Careem, inDrive',
+AE:'Careem, Uber',QA:'Uber, Careem',SA:'Uber, Careem',JO:'Careem, Uber',EG:'Uber, Careem',TR:'BiTaksi, Uber',IL:'Gett',MA:'Careem, inDrive',
+GB:'Uber, Bolt',FR:'Uber, Bolt, G7',DE:'Uber, Bolt, FREENOW',NL:'Uber, Bolt',BE:'Uber, Bolt',ES:'Uber, Cabify, Bolt',PT:'Uber, Bolt',IT:'FREENOW, itTaxi, Uber',CH:'Uber',AT:'Uber, Bolt',
+CZ:'Uber, Bolt, Liftago',PL:'Uber, Bolt, FREENOW',HU:'Bolt',GR:'FREENOW, Uber',IE:'FREENOW, Uber',NO:'Uber, Bolt',SE:'Uber, Bolt',FI:'Uber, Bolt',HR:'Uber, Bolt',RO:'Uber, Bolt',
+EE:'Bolt',LV:'Bolt',LT:'Bolt',UA:'Uklon, Bolt, Uber',RU:'Yandex Go',US:'Uber, Lyft',CA:'Uber, Lyft',MX:'Uber, DiDi',BR:'Uber, 99',AR:'Uber, Cabify',CL:'Uber, Cabify, DiDi',
+CO:'Uber, DiDi, Cabify',PE:'Uber, Cabify, inDrive',EC:'Uber, inDrive',CR:'Uber, DiDi',AU:'Uber, DiDi',NZ:'Uber',ZA:'Uber, Bolt',KE:'Uber, Bolt',NG:'Uber, Bolt',GH:'Uber, Bolt',TZ:'Uber, Bolt'};
+const RTKEY='tripCountdown.route';
+const rtGet=()=>{try{return JSON.parse(localStorage.getItem(RTKEY))||{}}catch(e){return {}}};
+const rtSet=v=>{try{localStorage.setItem(RTKEY,JSON.stringify(v))}catch(e){}};
+const airportQ=t=>t.airport||((t.geo||t.city||'')+' airport');
+async function photon(q,cc,tag){
+  const r=await fetch('https://photon.komoot.io/api/?limit=8&lang=en&q='+encodeURIComponent(q)+(tag?'&osm_tag='+tag:''));
+  const j=await r.json();const f=(j.features||[]).filter(x=>!cc||(x.properties.countrycode||'').toUpperCase()===cc);
+  if(!f.length)return null;const p=f[0].properties,c=f[0].geometry.coordinates;
+  return {lon:c[0],lat:c[1],name:[p.name,p.city&&p.city!==p.name?p.city:''].filter(Boolean).join(', ')};
+}
+async function fetchRoute(t){
+  const country=BY[t.destCC]?BY[t.destCC].name:'';
+  const acc=t.apcc||t.destCC;
+  let a=await photon(airportQ(t)+(t.iata?' airport':''),acc,'aeroway:aerodrome');
+  if(!a)a=await photon(airportQ(t)+' '+(BY[acc]?BY[acc].name:country),acc,'aeroway:aerodrome');
+  if(a&&t.iata)a.name=a.name.replace(/\s*\([A-Z]{3}\)$/,'')+' ('+t.iata+')';
+  if(!a)throw new Error('airport');
+  let h=await photon(t.hotel+' '+(t.geo||t.city||''),t.destCC);
+  if(!h)h=await photon(t.hotel,t.destCC);
+  if(!h)throw new Error('hotel');
+  const r=await fetch('https://router.project-osrm.org/route/v1/driving/'+a.lon+','+a.lat+';'+h.lon+','+h.lat+'?overview=false');
+  const j=await r.json();if(!j.routes||!j.routes.length)throw new Error('route');
+  return {key:rtKey(t),at:Date.now(),from:a.name,to:h.name,sec:j.routes[0].duration,m:j.routes[0].distance};
+}
+const rtKey=t=>[t.destCC,airportQ(t),t.hotel].join('|');
+function mins(s){const m=Math.max(5,Math.round(s/60/5)*5);return m<60?m+' min':Math.floor(m/60)+' hr'+(m%60?' '+m%60+' min':'')}
+function drawRoute(t,d,note){
+  const box=$('route'),apps=RIDE[t.destCC];
+  const gm='https://www.google.com/maps/dir/?api=1&travelmode=transit&origin='+encodeURIComponent(d?d.from:airportQ(t))+'&destination='+encodeURIComponent(t.hotel?(d?d.to:t.hotel+' '+(t.city||'')):'');
+  let h='';
+  if(t.landAt){
+    const tz=destTzOf(t),buf=(t.buffer||60)*60000,out=t.landAt+buf,hotelAt=d?out+Math.ceil(d.sec/300)*300000:null;
+    const T=ts=>esc(fmtTime(ts,tz)),D=ts=>{const a=parts(ts,tz),b=parts(t.landAt,tz);return '<small'+(a.day!==b.day?' class="nd"':'')+'>'+esc(fmtDate(ts,tz))+'</small>'};
+    const hb=hotelAt?' ('+esc(fmtTime(hotelAt,homeTzOf(t)))+' '+esc(BY[t.homeCC]?BY[t.homeCC].name:'home')+' time)':'';
+    h+='<ol class="tl">'+
+      '<li><span class="tt">'+T(t.landAt)+D(t.landAt)+'</span><span class="dot"></span><span class="what">Land'+(t.iata?' at '+esc(t.iata):'')+'<small>'+esc(fmtTime(t.landAt,homeTzOf(t)))+' '+esc(BY[t.homeCC]?BY[t.homeCC].name:'home')+' time</small></span></li>'+
+      '<li><span class="tt">'+T(out)+D(out)+'</span><span class="dot"></span><span class="what">Out of the airport<small>About '+mins(buf/1000)+' for immigration, bags and walking</small></span></li>'+
+      (hotelAt?'<li><span class="tt">'+T(hotelAt)+D(hotelAt)+'</span><span class="dot"></span><span class="what">At your hotel<small>By car, taxi or ride-hailing'+hb+'</small></span></li>':'')+
+      '</ol>';
+    if(!d&&t.hotel)h+='';
+  }else h+='<div class="wx-msg">Add your landing time (tap Edit on this trip) to see what time you\u2019ll reach your hotel.</div>';
+  if(!t.hotel)h+='<div class="wx-msg">Add your hotel (tap Edit on this trip) to see how long it takes to get there from the airport.</div>';
+  else if(!d)h+='<div class="wx-msg">'+(note||'Working out the route…')+'</div>';
+  else{
+    h+='<div class="rt-path"><div><span class="rt-l">From</span>'+esc(d.from)+'</div><div><span class="rt-l">To</span>'+esc(d.to)+'</div></div>';
+    h+='<div class="rt-row"><div class="rt-ic">'+CAR+'</div><div><div class="rt-t">'+mins(d.sec)+' <small>· '+(d.m/1000).toFixed(d.m<10000?1:0)+' km</small></div><div class="sub">By car, taxi or ride-hailing, on clear roads. Allow extra time at rush hour.</div></div></div>';
+  }
+  h+='<div class="rt-row"><div class="rt-ic">'+PHONE+'</div><div><div class="rt-t2">Ride-hailing apps</div><div class="sub">'+(apps?esc(apps)+'. Download before you fly. App availability can change, so double-check closer to the date.':'No major ride-hailing app here as far as I know. Use the official airport taxi rank.')+'</div></div></div>';
+  if(t.hotel)h+='<div class="wx-msg"><a href="'+gm+'" target="_blank" rel="noopener">See train and bus routes</a> (opens Google Maps)</div>';
+  h+='<div class="wx-msg tiny">'+(d?'Worked out '+ago(d.at)+(note?' · '+note:'')+' · ':'')+'Route data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, via OSRM and Photon</div>';
+  box.innerHTML=h;
+}
+const CAR='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11l1.6-4.4A2 2 0 0 1 8.5 5h7a2 2 0 0 1 1.9 1.6L19 11a2 2 0 0 1 2 2v4h-2v1.5a1.5 1.5 0 0 1-3 0V17H8v1.5a1.5 1.5 0 0 1-3 0V17H3v-4a2 2 0 0 1 2-2zm2.2 0h9.6l-1.2-3.4a.8.8 0 0 0-.7-.6h-5.8a.8.8 0 0 0-.7.6zM6.5 15a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6zm11 0a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6z"/></svg>';
+const PHONE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 3v13h8V5zm4 14.2a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>';
+let rtBusy=null;
+async function route(){
+  const t=current();
+  if(!t||!t.destCC){$('routeTitle').hidden=true;$('route').hidden=true;return}
+  $('routeTitle').hidden=false;$('route').hidden=false;$('routeTitle').textContent='Airport to hotel';
+  if(!t.hotel){drawRoute(t,null);return}
+  const all=rtGet(),k=rtKey(t),c=all[t.id]&&all[t.id].key===k?all[t.id]:null;
+  if(c){drawRoute(t,c);if(Date.now()-c.at<30*86400000)return}
+  if(rtBusy===k)return;rtBusy=k;
+  if(!c)drawRoute(t,null);
+  try{const d=await fetchRoute(t);const a=rtGet();a[t.id]=d;rtSet(a);if(current()&&current().id===t.id)drawRoute(t,d)}
+  catch(e){
+    const off=navigator.onLine===false;
+    const msg=off?'You’re offline. The travel time will show once you’re connected.':
+      e.message==='airport'?'Couldn’t find that airport. Edit the trip and type the airport name, like “Berlin Brandenburg Airport”.':
+      e.message==='hotel'?'Couldn’t find that hotel. Edit the trip and try the hotel’s full name or street address.':
+      e.message==='route'?'Couldn’t work out a driving route between those two places.':
+      'Travel times couldn’t load here. They work in the downloaded or GitHub copy with internet on.';
+    if(c)drawRoute(t,c,off?'offline':'couldn’t refresh');else drawRoute(t,null,msg);
+  }finally{rtBusy=null}
+}
+
+
+/* airports per country: Name=IATA[@country if outside] */
+const APRAW=`AF:Kabul International=KBL
+AL:Tirana International=TIA
+DZ:Algiers Houari Boumediene=ALG
+AD:Barcelona El Prat=BCN@ES;Toulouse-Blagnac=TLS@FR
+AO:Luanda Dr. António Agostinho Neto International=NBJ;Luanda Quatro de Fevereiro=LAD
+AG:V. C. Bird International=ANU
+AR:Buenos Aires Ezeiza=EZE;Buenos Aires Aeroparque Jorge Newbery=AEP;Mendoza El Plumerillo=MDZ;Bariloche=BRC;Ushuaia Malvinas Argentinas=USH;Córdoba Ingeniero Taravella=COR
+AM:Yerevan Zvartnots International=EVN
+AU:Sydney Kingsford Smith=SYD;Melbourne Tullamarine=MEL;Brisbane=BNE;Gold Coast=OOL;Cairns=CNS;Perth=PER;Adelaide=ADL;Darwin=DRW;Hobart=HBA
+AT:Vienna International=VIE;Salzburg=SZG;Innsbruck=INN
+AZ:Baku Heydar Aliyev International=GYD
+BS:Nassau Lynden Pindling International=NAS
+BH:Bahrain International=BAH
+BD:Dhaka Hazrat Shahjalal International=DAC
+BB:Grantley Adams International=BGI
+BY:Minsk National=MSQ
+BE:Brussels Airport=BRU;Brussels South Charleroi=CRL;Antwerp=ANR
+BZ:Belize Philip S. W. Goldson International=BZE
+BJ:Cotonou Cadjehoun=COO
+BT:Paro International=PBH
+BO:La Paz El Alto International=LPB;Santa Cruz Viru Viru International=VVI
+BA:Sarajevo International=SJJ
+BW:Gaborone Sir Seretse Khama International=GBE;Maun=MUB
+BR:Rio de Janeiro Galeão=GIG;São Paulo Guarulhos=GRU;Salvador=SSA;Florianópolis=FLN;Foz do Iguaçu=IGU;Manaus Eduardo Gomes=MAO;Brasília=BSB;Rio Branco=RBR;Fernando de Noronha=FEN
+BN:Brunei International=BWN
+BG:Sofia=SOF;Varna=VAR;Burgas=BOJ
+BF:Ouagadougou=OUA
+BI:Bujumbura Melchior Ndadaye International=BJM
+CV:Sal Amílcar Cabral International=SID;Praia Nelson Mandela International=RAI
+KH:Phnom Penh Techo International=KTI;Siem Reap-Angkor International=SAI;Sihanoukville International=KOS
+CM:Yaoundé Nsimalen=NSI;Douala International=DLA
+CA:Toronto Pearson=YYZ;Vancouver International=YVR;Montréal-Trudeau=YUL;Québec City Jean Lesage=YQB;Calgary International=YYC;Winnipeg=YWG;Halifax Stanfield=YHZ;St. John's International=YYT;Ottawa=YOW
+CF:Bangui M'Poko=BGF
+TD:N'Djamena International=NDJ
+CL:Santiago Arturo Merino Benítez=SCL;Calama El Loa=CJC;Easter Island Mataveri=IPC
+CN:Beijing Capital=PEK;Beijing Daxing=PKX;Shanghai Pudong=PVG;Shanghai Hongqiao=SHA;Guangzhou Baiyun=CAN;Shenzhen Bao'an=SZX;Chengdu Tianfu=TFU;Xi'an Xianyang=XIY;Hangzhou Xiaoshan=HGH;Guilin Liangjiang=KWL
+CO:Bogotá El Dorado=BOG;Cartagena Rafael Núñez=CTG;Medellín José María Córdova=MDE
+KM:Prince Said Ibrahim International=HAH
+CG:Brazzaville Maya-Maya=BZV
+CD:Kinshasa N'djili International=FIH;Lubumbashi International=FBM
+CR:San José Juan Santamaría International=SJO;Liberia Guanacaste=LIR
+CI:Abidjan Félix-Houphouët-Boigny=ABJ
+HR:Zagreb Franjo Tuđman=ZAG;Dubrovnik=DBV;Split=SPU
+CU:Havana José Martí International=HAV;Varadero Juan Gualberto Gómez=VRA
+CY:Larnaca=LCA;Paphos=PFO
+CZ:Prague Václav Havel=PRG
+DK:Copenhagen Kastrup=CPH;Aarhus=AAR;Billund=BLL
+DJ:Djibouti-Ambouli International=JIB
+DM:Douglas-Charles=DOM
+DO:Punta Cana International=PUJ;Santo Domingo Las Américas=SDQ
+EC:Quito Mariscal Sucre=UIO;Guayaquil José Joaquín de Olmedo=GYE;Galápagos Seymour=GPS
+EG:Cairo International=CAI;Luxor=LXR;Aswan=ASW;Sharm El Sheikh=SSH;Hurghada=HRG;Alexandria Borg El Arab=HBE
+SV:San Salvador International=SAL
+GQ:Malabo International=SSG
+ER:Asmara International=ASM
+EE:Tallinn=TLL
+SZ:King Mswati III International=SHO
+ET:Addis Ababa Bole International=ADD
+FJ:Nadi International=NAN;Suva Nausori=SUV
+FI:Helsinki-Vantaa=HEL;Rovaniemi=RVN
+FR:Paris Charles de Gaulle=CDG;Paris Orly=ORY;Nice Côte d'Azur=NCE;Lyon Saint-Exupéry=LYS;Marseille Provence=MRS;Bordeaux-Mérignac=BOD;Strasbourg=SXB
+GA:Libreville Léon M'ba International=LBV
+GM:Banjul International=BJL
+GE:Tbilisi International=TBS;Batumi International=BUS;Kutaisi International=KUT
+DE:Berlin Brandenburg=BER;Frankfurt=FRA;Munich=MUC;Hamburg=HAM;Cologne Bonn=CGN;Düsseldorf=DUS;Stuttgart=STR
+GH:Accra Kotoka International=ACC
+GR:Athens International=ATH;Santorini=JTR;Mykonos=JMK;Crete Heraklion=HER;Rhodes Diagoras=RHO;Thessaloniki Makedonia=SKG
+GD:Maurice Bishop International=GND
+GU:Guam Antonio B. Won Pat International=GUM
+GT:Guatemala City La Aurora=GUA
+GN:Conakry International=CKY
+GW:Bissau Osvaldo Vieira International=OXB
+GY:Cheddi Jagan International=GEO
+HT:Port-au-Prince Toussaint Louverture=PAP
+HN:Palmerola International=XPL;Roatán Juan Manuel Gálvez=RTB;San Pedro Sula Ramón Villeda Morales=SAP
+HK:Hong Kong International=HKG
+HU:Budapest Ferenc Liszt=BUD
+IS:Keflavík International=KEF
+IN:Delhi Indira Gandhi=DEL;Mumbai Chhatrapati Shivaji Maharaj=BOM;Goa Mopa Manohar=GOX;Goa Dabolim=GOI;Jaipur=JAI;Agra=AGR;Bengaluru Kempegowda=BLR;Kochi=COK;Chennai=MAA;Varanasi=VNS;Udaipur=UDR
+ID:Bali Ngurah Rai=DPS;Jakarta Soekarno-Hatta=CGK;Yogyakarta International=YIA;Lombok International=LOP;Labuan Bajo Komodo=LBJ;Surabaya Juanda=SUB;Bandung Husein Sastranegara=BDO;Jayapura Sentani=DJJ
+IR:Tehran Imam Khomeini=IKA
+IQ:Baghdad International=BGW;Erbil International=EBL
+IE:Dublin=DUB;Shannon=SNN;Cork=ORK
+IL:Tel Aviv Ben Gurion=TLV;Eilat Ramon=ETM
+IT:Rome Fiumicino=FCO;Rome Ciampino=CIA;Milan Malpensa=MXP;Milan Linate=LIN;Milan Bergamo=BGY;Venice Marco Polo=VCE;Florence Peretola=FLR;Pisa Galileo Galilei=PSA;Naples=NAP;Sicily Palermo=PMO;Sicily Catania=CTA
+JM:Montego Bay Sangster International=MBJ;Kingston Norman Manley=KIN
+JP:Tokyo Narita=NRT;Tokyo Haneda=HND;Osaka Kansai=KIX;Osaka Itami=ITM;Nagoya Chubu Centrair=NGO;Sapporo New Chitose=CTS;Fukuoka=FUK;Okinawa Naha=OKA;Hiroshima=HIJ
+JO:Amman Queen Alia International=AMM;Aqaba King Hussein=AQJ
+KZ:Almaty International=ALA;Astana Nursultan Nazarbayev=NQZ
+KE:Nairobi Jomo Kenyatta=NBO;Mombasa Moi International=MBA
+KI:Tarawa Bonriki International=TRW
+XK:Pristina International Adem Jashari=PRN
+KW:Kuwait International=KWI
+KG:Bishkek Manas International=FRU
+LA:Vientiane Wattay International=VTE;Luang Prabang International=LPQ
+LV:Riga International=RIX
+LB:Beirut-Rafic Hariri International=BEY
+LS:Maseru Moshoeshoe I International=MSU
+LR:Monrovia Roberts International=ROB
+LY:Tripoli Mitiga International=MJI
+LI:Zurich=ZRH@CH
+LT:Vilnius International=VNO
+LU:Luxembourg Findel=LUX
+MO:Macau International=MFM
+MG:Antananarivo Ivato International=TNR;Nosy Be Fascene=NOS
+MW:Lilongwe Kamuzu International=LLW
+MY:Kuala Lumpur International=KUL;Penang International=PEN;Langkawi International=LGK;Kota Kinabalu International=BKI;Kuching International=KCH;Malacca International=MKZ
+MV:Malé Velana International=MLE
+ML:Bamako Modibo Keïta International=BKO
+MT:Malta International=MLA
+MH:Majuro Amata Kabua International=MAJ
+MR:Nouakchott-Oumtounsy International=NKC
+MU:Sir Seewoosagur Ramgoolam International=MRU
+MX:Mexico City Benito Juárez=MEX;Mexico City Felipe Ángeles=NLU;Cancún International=CUN;Tulum Felipe Carrillo Puerto=TQO;Guadalajara=GDL;Oaxaca=OAX;Tijuana=TIJ;Los Cabos=SJD;Puerto Vallarta=PVR
+FM:Pohnpei International=PNI
+MD:Chișinău International=RMO
+MC:Nice Côte d'Azur=NCE@FR
+MN:Ulaanbaatar Chinggis Khaan International=UBN
+ME:Podgorica=TGD;Tivat=TIV
+MA:Marrakech Menara=RAK;Casablanca Mohammed V=CMN;Fez-Saïss=FEZ;Tangier Ibn Battouta=TNG
+MZ:Maputo International=MPM
+MM:Yangon International=RGN;Mandalay International=MDL;Bagan Nyaung U=NYU
+NA:Windhoek Hosea Kutako International=WDH
+NR:Nauru International=INU
+NP:Kathmandu Tribhuvan International=KTM;Pokhara International=PKR
+NL:Amsterdam Schiphol=AMS;Rotterdam The Hague=RTM;Eindhoven=EIN
+NZ:Auckland=AKL;Queenstown=ZQN;Wellington=WLG;Christchurch=CHC;Rotorua=ROT
+NI:Managua Augusto C. Sandino International=MGA
+NE:Niamey Diori Hamani International=NIM
+NG:Lagos Murtala Muhammed=LOS;Abuja Nnamdi Azikiwe=ABV
+KP:Pyongyang Sunan=FNJ
+MK:Skopje International=SKP;Ohrid St. Paul the Apostle=OHD
+NO:Oslo Gardermoen=OSL;Bergen Flesland=BGO;Tromsø=TOS
+OM:Muscat International=MCT
+PK:Islamabad International=ISB;Lahore Allama Iqbal=LHE;Karachi Jinnah=KHI
+PW:Koror Roman Tmetuchl International=ROR
+PS:Tel Aviv Ben Gurion=TLV@IL;Amman Queen Alia International=AMM@JO
+PA:Panama City Tocumen International=PTY
+PG:Port Moresby Jacksons International=POM
+PY:Asunción Silvio Pettirossi=ASU
+PE:Lima Jorge Chávez=LIM;Cusco Alejandro Velasco Astete=CUZ;Arequipa=AQP
+PH:Manila Ninoy Aquino=MNL;Cebu Mactan-Cebu=CEB;Clark International=CRK;Boracay Caticlan=MPH;Kalibo International=KLO;Puerto Princesa=PPS;El Nido Lio=ENI;Coron Busuanga=USU;Bohol-Panglao=TAG;Siargao Sayak=IAO;Davao Francisco Bangoy=DVO;Iloilo International=ILO;Baguio Loakan=BAG
+PL:Warsaw Chopin=WAW;Krakow John Paul II=KRK;Gdansk Lech Wałęsa=GDN
+PT:Lisbon Humberto Delgado=LIS;Porto Francisco Sá Carneiro=OPO;Algarve Faro=FAO;Madeira Cristiano Ronaldo=FNC;Azores Ponta Delgada=PDL
+PR:San Juan Luis Muñoz Marín=SJU
+QA:Doha Hamad International=DOH
+RO:Bucharest Henri Coandă=OTP;Cluj=CLJ
+RU:Moscow Sheremetyevo=SVO;Moscow Domodedovo=DME;Moscow Vnukovo=VKO;St. Petersburg Pulkovo=LED;Kaliningrad Khrabrovo=KGD;Yekaterinburg Koltsovo=SVX;Novosibirsk Tolmachevo=OVB;Irkutsk=IKT;Vladivostok=VVO
+RW:Kigali International=KGL
+KN:Robert L. Bradshaw International=SKB
+LC:Hewanorra International=UVF;George F. L. Charles=SLU
+VC:Argyle International=SVD
+WS:Faleolo International=APW
+SM:Bologna Guglielmo Marconi=BLQ@IT;Rimini Federico Fellini=RMI@IT
+ST:São Tomé International=TMS
+SA:Riyadh King Khalid=RUH;Jeddah King Abdulaziz=JED;Medina Prince Mohammad bin Abdulaziz=MED;AlUla International=ULH
+SN:Dakar Blaise Diagne International=DSS
+RS:Belgrade Nikola Tesla=BEG
+SC:Seychelles International=SEZ
+SL:Freetown International=FNA
+SG:Singapore Changi=SIN
+SK:Bratislava M. R. Štefánik=BTS;Košice=KSC;Vienna International=VIE@AT
+SI:Ljubljana Jože Pučnik=LJU
+SB:Honiara International=HIR
+SO:Mogadishu Aden Adde International=MGQ
+ZA:Cape Town International=CPT;Johannesburg O. R. Tambo=JNB;Durban King Shaka=DUR
+KR:Seoul Incheon=ICN;Seoul Gimpo=GMP;Busan Gimhae=PUS;Jeju International=CJU
+SS:Juba International=JUB
+ES:Madrid Barajas=MAD;Barcelona El Prat=BCN;Seville=SVQ;Valencia=VLC;Granada=GRX;Málaga=AGP;Ibiza=IBZ;Mallorca Palma=PMI;Tenerife South=TFS;Tenerife North=TFN;Gran Canaria=LPA
+LK:Colombo Bandaranaike International=CMB;Mattala Rajapaksa=HRI
+SD:Port Sudan=PZU
+SR:Paramaribo Johan Adolf Pengel=PBM
+SE:Stockholm Arlanda=ARN;Gothenburg Landvetter=GOT;Kiruna=KRN
+CH:Zurich=ZRH;Geneva=GVA;Basel EuroAirport=BSL
+SY:Damascus International=DAM
+TW:Taipei Taoyuan=TPE;Taipei Songshan=TSA;Kaohsiung International=KHH;Taichung International=RMQ;Tainan=TNN;Hualien=HUN
+TJ:Dushanbe International=DYU
+TZ:Zanzibar Abeid Amani Karume=ZNZ;Dar es Salaam Julius Nyerere=DAR;Arusha Kilimanjaro International=JRO
+TH:Bangkok Suvarnabhumi=BKK;Bangkok Don Mueang=DMK;Phuket International=HKT;Chiang Mai International=CNX;Krabi International=KBV;Koh Samui=USM;Chiang Rai Mae Fah Luang=CEI;Pattaya U-Tapao=UTP;Hua Hin=HHQ
+TL:Dili Presidente Nicolau Lobato=DIL
+TG:Lomé-Tokoin=LFW
+TO:Fuaʻamotu International=TBU
+TT:Trinidad Piarco International=POS;Tobago A.N.R. Robinson=TAB
+TN:Tunis-Carthage=TUN;Djerba-Zarzis=DJE
+TR:Istanbul Airport=IST;Istanbul Sabiha Gökçen=SAW;Cappadocia Nevşehir=NAV;Cappadocia Kayseri=ASR;Antalya=AYT;Ankara Esenboğa=ESB;Izmir Adnan Menderes=ADB;Bodrum Milas=BJV;Pamukkale Denizli Çardak=DNZ
+TM:Ashgabat International=ASB
+TV:Funafuti International=FUN
+UG:Entebbe International=EBB
+UA:Kyiv Boryspil=KBP;Rzeszów-Jasionka=RZE@PL
+AE:Dubai International=DXB;Dubai Al Maktoum=DWC;Abu Dhabi Zayed International=AUH;Sharjah International=SHJ
+GB:London Heathrow=LHR;London Gatwick=LGW;London Stansted=STN;London Luton=LTN;London City=LCY;Manchester=MAN;Edinburgh=EDI;Glasgow=GLA;Liverpool John Lennon=LPL;Bristol=BRS
+US:New York JFK=JFK;Newark Liberty=EWR;New York LaGuardia=LGA;Los Angeles=LAX;San Francisco=SFO;Las Vegas Harry Reid=LAS;Seattle-Tacoma=SEA;Chicago O'Hare=ORD;Orlando=MCO;Miami=MIA;Washington Dulles=IAD;Washington Reagan National=DCA;Boston Logan=BOS;New Orleans Louis Armstrong=MSY;Houston George Bush=IAH;Denver=DEN;Phoenix Sky Harbor=PHX;Honolulu Daniel K. Inouye=HNL;Anchorage Ted Stevens=ANC
+UY:Montevideo Carrasco=MVD
+UZ:Tashkent International=TAS;Samarkand International=SKD;Bukhara International=BHK
+VU:Port Vila Bauerfield=VLI
+VA:Rome Fiumicino=FCO@IT;Rome Ciampino=CIA@IT
+VE:Caracas Simón Bolívar=CCS
+VN:Hanoi Noi Bai=HAN;Ho Chi Minh City Tan Son Nhat=SGN;Da Nang International=DAD;Nha Trang Cam Ranh=CXR;Phu Quoc International=PQC;Da Lat Lien Khuong=DLI;Ha Long Van Don=VDO;Hue Phu Bai=HUI
+YE:Aden International=ADE
+ZM:Lusaka Kenneth Kaunda International=LUN;Livingstone Harry Mwanga Nkumbula=LVI
+ZW:Harare Robert Gabriel Mugabe International=HRE;Victoria Falls=VFA`;
+const AIRPORTS={};
+APRAW.split('\n').forEach(l=>{const i=l.indexOf(':');AIRPORTS[l.slice(0,i)]=l.slice(i+1).split(';').map(x=>{const a=x.split('@'),p=a[0].split('=');return {name:p[0],code:p[1],cc:a[1]||''}})});
+const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+const AP_NEAR={'JP|Kyoto':'KIX','JP|Nara':'KIX','JP|Hakone':'HND','JP|Yokohama':'HND','KR|Gyeongju':'PUS','IT|Amalfi':'NAP','IT|Como':'MXP','AT|Hallstatt':'SZG',
+'BE|Bruges':'BRU','BE|Ghent':'BRU','NL|The Hague':'RTM','NL|Utrecht':'AMS','DE|Heidelberg':'FRA','GB|Oxford':'LHR','GB|Bath':'BRS','IE|Galway':'SNN','PT|Sintra':'LIS',
+'CH|Interlaken':'ZRH','CH|Lucerne':'ZRH','CH|Zermatt':'ZRH','CH|Bern':'ZRH','CZ|Český Krumlov':'PRG','HR|Hvar':'SPU','NO|Lofoten':'OSL','LK|Sigiriya':'CMB','LK|Ella':'CMB',
+'LK|Kandy':'CMB','LK|Galle':'CMB','VN|Hoi An':'DAD','VN|Sapa':'HAN','VN|Da Lat':'DLI','LA|Vang Vieng':'VTE','MA|Chefchaouen':'TNG','JO|Petra':'AMM','KE|Maasai Mara':'NBO',
+'CA|Banff':'YYC','MX|Playa del Carmen':'CUN','CR|La Fortuna':'SJO','SA|Mecca':'JED','CU|Trinidad':'HAV','MU|Grand Baie':'MRU','GU|Tumon':'GUM','PH|Baguio':'CRK',
+'CL|San Pedro de Atacama':'CJC','CL|Valparaíso':'SCL','IN|New Delhi':'DEL','TZ|Zanzibar':'ZNZ','EG|Alexandria':'HBE','SE|Gothenburg':'GOT','CN|Xi\'an':'XIY'};
+function bestAirport(cc,cityName,geo){
+  const list=AIRPORTS[cc]||[];if(!list.length)return -1;
+  const near=AP_NEAR[cc+'|'+cityName];if(near){const k=list.findIndex(a=>a.code===near);if(k>=0)return k}
+  const words=[cityName,geo].map(norm).join(' ').split(/[^a-z]+/).filter(w=>w.length>3&&!['city','international','island','islands'].includes(w));
+  for(let i=0;i<list.length;i++){const n=norm(list[i].name);if(words.some(w=>n.includes(w)))return i}
+  return 0;
+}
+function fillAirports(keep){
+  const cc=$('fDestCC').value,list=AIRPORTS[cc]||[],sel=$('fApSel');
+  if(!cc){$('fApWrap').hidden=true;$('fApOther').hidden=true;return}
+  $('fApWrap').hidden=false;
+  sel.innerHTML=list.map((a,i)=>'<option value="'+i+'">'+esc(a.name)+' ('+a.code+')</option>').join('')+'<option value="other">Other (type it)</option>';
+  let v;
+  if(keep!==undefined&&keep!==''){const k=list.findIndex(a=>a.name===keep);v=k>=0?String(k):'other'}
+  else{const cs=$('fCitySel').value,c=cs&&cs!=='other'?citiesOf(cc)[+cs]:null;const b=bestAirport(cc,c?c.name:$('fCity').value,c?c.geo:'');v=b<0?'other':String(b)}
+  sel.value=v;$('fApOther').hidden=v!=='other';$('fAirport').value=v==='other'&&keep?keep:'';
+}
+
+/* form */
+const opts=COUNTRIES.map(c=>'<option value="'+c.cc+'">'+esc(c.name)+'</option>').join('');
+$('fDestCC').insertAdjacentHTML('beforeend',opts);$('fHomeCC').innerHTML=opts;
+function fillZones(ccSel,tzSel,wrap,keep){
+  const c=BY[$(ccSel).value],sel=$(tzSel);
+  if(!c||c.zones.length<2){$(wrap).hidden=true;sel.innerHTML=c?'<option value="'+c.zones[0].tz+'"></option>':'';return}
+  sel.innerHTML=c.zones.map(z=>'<option value="'+z.tz+'">'+esc(z.label)+'</option>').join('');
+  if(keep&&c.zones.some(z=>z.tz===keep))sel.value=keep;
+  $(wrap).hidden=false;
+}
+function hints(){const h=BY[$('fHomeCC').value],d=BY[$('fDestCC').value];
+  $('timeHint').textContent=h?'('+h.name+' time)':'';$('retHint').textContent=d?'('+d.name+' time)':'(local time)';landZoneUI()}
+let landIn='home';
+function landZoneUI(){const h=BY[$('fHomeCC').value],d=BY[$('fDestCC').value];
+  $('lzHome').textContent=(h?h.name:'Home')+' time';$('lzDest').textContent=(d?d.name:'Destination')+' time';
+  $('lzHome').setAttribute('aria-pressed',String(landIn==='home'));$('lzDest').setAttribute('aria-pressed',String(landIn==='dest'));
+  const z=landIn==='home'?h:d;$('landHint').textContent=z?'('+z.name+' time)':''}
+function setLandIn(v){
+  const tzOld=landTz(),had=$('fLandTime').value;landIn=v;
+  if(had&&tzOld){const ld=($('fLandDate').value||$('fDate').value).split('-').map(Number),lt=had.split(':').map(Number);
+    if(ld.length===3){const ts=zoned(ld[0],ld[1],ld[2],lt[0],lt[1],tzOld),p=parts(ts,landTz());$('fLandDate').value=p.year+'-'+pad(p.month)+'-'+pad(p.day);$('fLandTime').value=pad(p.hour)+':'+pad(p.minute)}}
+  landZoneUI()}
+function landTz(){const cc=landIn==='home'?$('fHomeCC').value:$('fDestCC').value;if(!BY[cc])return null;
+  if(landIn==='home')return $('fHomeTz').value||BY[cc].zones[0].tz;
+  const cs=$('fCitySel').value,pk=cs&&cs!=='other'?citiesOf(cc)[+cs]:null;return pk?pk.tz:($('fDestTz').value||BY[cc].zones[0].tz)}
+$('lzHome').addEventListener('click',()=>setLandIn('home'));$('lzDest').addEventListener('click',()=>setLandIn('dest'));
+function setRound(v){round=v;$('oneWay').setAttribute('aria-pressed',String(!v));$('roundTrip').setAttribute('aria-pressed',String(v));$('retRow').hidden=!v;
+  if(v&&!$('fRetDate').value&&$('fDate').value){const d=new Date($('fDate').value+'T00:00:00');d.setDate(d.getDate()+5);$('fRetDate').value=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}}
+$('oneWay').addEventListener('click',()=>setRound(false));
+$('roundTrip').addEventListener('click',()=>setRound(true));
+$('fDestCC').addEventListener('change',()=>{fillZones('fDestCC','fDestTz','fDestTzWrap');fillCities();hints();$('err').textContent=''});
+$('fCitySel').addEventListener('change',()=>{cityMode('');$('err').textContent='';fillAirports()});
+$('fDestCC').addEventListener('change',()=>fillAirports());
+$('fCity').addEventListener('change',()=>{if($('fApSel').value!=='other')fillAirports()});
+$('fApSel').addEventListener('change',()=>{const o=$('fApSel').value==='other';$('fApOther').hidden=!o;if(!o)$('fAirport').value=''});
+$('fHomeCC').addEventListener('change',()=>{fillZones('fHomeCC','fHomeTz','fHomeTzWrap');hints()});
+$('fDate').addEventListener('change',()=>{if(!$('fLandDate').value)$('fLandDate').value=$('fDate').value});
+
+function resetForm(){
+  editing=null;$('form').reset();$('fTime').value='08:00';$('fRetTime').value='18:00';$('fBuf').value='60';landIn='home';
+  $('fHomeCC').value=BY[state.home]?state.home:'PH';fillZones('fHomeCC','fHomeTz','fHomeTzWrap');
+  fillZones('fDestCC','fDestTz','fDestTzWrap');fillCities();fillAirports();hints();setRound(false);
+  $('formTitle').textContent='Add a trip';$('save').textContent='Start countdown';$('cancel').hidden=true;$('err').textContent='';
+}
+function startEdit(t){
+  editing=t.id;
+  $('fDestCC').value=BY[t.destCC]?t.destCC:'';fillZones('fDestCC','fDestTz','fDestTzWrap',t.destTz);
+  $('fHomeCC').value=BY[t.homeCC]?t.homeCC:'PH';fillZones('fHomeCC','fHomeTz','fHomeTzWrap',t.homeTz);hints();
+  fillCities(t.city||'');$('fHotel').value=t.hotel||'';fillAirports(t.airport||'');
+  const p=parts(t.at,homeTzOf(t));
+  $('fDate').value=p.year+'-'+pad(p.month)+'-'+pad(p.day);$('fTime').value=pad(p.hour)+':'+pad(p.minute);
+  if(t.retAt){const r=parts(t.retAt,destTzOf(t));$('fRetDate').value=r.year+'-'+pad(r.month)+'-'+pad(r.day);$('fRetTime').value=pad(r.hour)+':'+pad(r.minute)}
+  else{$('fRetDate').value='';$('fRetTime').value='18:00'}
+  landIn=t.landIn||'dest';
+  if(t.landAt){const l=parts(t.landAt,landIn==='home'?homeTzOf(t):destTzOf(t));$('fLandDate').value=l.year+'-'+pad(l.month)+'-'+pad(l.day);$('fLandTime').value=pad(l.hour)+':'+pad(l.minute)}
+  else{$('fLandDate').value='';$('fLandTime').value=''}
+  $('fBuf').value=String(t.buffer||60);landZoneUI();
+  setRound(!!t.retAt);
+  $('formTitle').textContent='Edit trip';$('save').textContent='Save changes';$('cancel').hidden=false;
+  $('formTitle').scrollIntoView({behavior:'smooth'});
+}
+$('cancel').addEventListener('click',resetForm);
+
+$('list').addEventListener('click',e=>{
+  const card=e.target.closest('.trip[data-id]');if(!card)return;
+  const id=card.dataset.id,act=e.target.dataset?e.target.dataset.act:null,t=state.trips.find(x=>x.id===id);
+  if(act==='del'){
+    if(e.target.dataset.sure){state.trips=state.trips.filter(x=>x.id!==id);if(state.active===id)state.active=null;save();render();if(editing===id)resetForm()}
+    else{const b=e.target;b.dataset.sure='1';b.textContent='Tap to confirm';setTimeout(()=>{if(b.isConnected){delete b.dataset.sure;b.textContent='Delete'}},3000)}
+    return}
+  if(act==='edit'){startEdit(t);return}
+  state.active=id;save();render();window.scrollTo({top:0,behavior:'smooth'});
+});
+$('list').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('trip')){e.preventDefault();e.target.click()}});
+
+$('form').addEventListener('submit',e=>{
+  e.preventDefault();
+  const destCC=$('fDestCC').value,homeCC=$('fHomeCC').value,date=$('fDate').value,time=$('fTime').value||'00:00';
+  if(!destCC){$('err').textContent='Choose the country you’re visiting.';return}
+  if(!date){$('err').textContent='Pick your departure date.';return}
+  const as=$('fApSel').value,apPick=as&&as!=='other'?(AIRPORTS[destCC]||[])[+as]:null;
+  const cs=$('fCitySel').value,pick=cs==='other'?null:citiesOf(destCC)[+cs];
+  const destTz=pick?pick.tz:($('fDestTz').value||BY[destCC].zones[0].tz),homeTz=$('fHomeTz').value||BY[homeCC].zones[0].tz;
+  const d=date.split('-').map(Number),tm=time.split(':').map(Number);
+  const at=zoned(d[0],d[1],d[2],tm[0],tm[1],homeTz),city=pick?pick.name:$('fCity').value.trim(),geo=pick?pick.geo:'';
+  if(!pick&&!city){$('err').textContent='Type the city or place you\u2019re visiting.';return}
+  const clash=COUNTRIES.find(c=>c.name.toLowerCase()===city.toLowerCase()&&c.cc!==destCC);
+  if(clash){$('err').textContent='You typed '+clash.name+' as the city but picked '+BY[destCC].name+' as the country. Change the country to '+clash.name+', or type a city name instead.';return}
+  let landAt=null;
+  if($('fLandTime').value){
+    const ld=($('fLandDate').value||date).split('-').map(Number),lt=$('fLandTime').value.split(':').map(Number);
+    landAt=zoned(ld[0],ld[1],ld[2],lt[0],lt[1],landIn==='home'?homeTz:destTz);
+    if(landAt<=at){$('err').textContent='Your landing time needs to be after you take off. Check the landing date, since overnight flights land the next day.';return}
+    if(landAt-at>48*3600000){$('err').textContent='That\u2019s more than 2 days after take-off. Double-check the landing date.';return}
+  }
+  let retAt=null;
+  if(round){
+    if(!$('fRetDate').value){$('err').textContent='Pick your return date.';return}
+    const rd=$('fRetDate').value.split('-').map(Number),rt=($('fRetTime').value||'00:00').split(':').map(Number);
+    retAt=zoned(rd[0],rd[1],rd[2],rt[0],rt[1],destTz);
+    if(retAt<=at){$('err').textContent='Your return flight needs to be after you leave.';return}
+  }
+  const data={destCC,destTz,homeCC,homeTz,city,geo,at,retAt,landAt,landIn,buffer:+$('fBuf').value||60,hotel:$('fHotel').value.trim(),airport:apPick?apPick.name:$('fAirport').value.trim(),apcc:apPick?apPick.cc:'',iata:apPick?apPick.code:''};
+  if(editing){const t=state.trips.find(x=>x.id===editing);Object.assign(t,data);if(t.created>=at)t.created=Date.now();state.active=t.id}
+  else{const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);data.id=id;data.created=Date.now();state.trips.push(data);state.active=id}
+  state.home=homeCC;save();resetForm();render();window.scrollTo({top:0,behavior:'smooth'});
+});
+
+/* full screen (Android/desktop; iPhone Safari doesn't allow it for web pages) */
+{
+  const root=document.documentElement;
+  const can=!!(document.fullscreenEnabled||document.webkitFullscreenEnabled)&&!!(root.requestFullscreen||root.webkitRequestFullscreen);
+  const isFs=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+  const enter=()=>{try{const p=(root.requestFullscreen||root.webkitRequestFullscreen).call(root,{navigationUI:'hide'});if(p&&p.catch)p.catch(()=>{})}catch(e){}};
+  const exit=()=>{try{const p=(document.exitFullscreen||document.webkitExitFullscreen).call(document);if(p&&p.catch)p.catch(()=>{})}catch(e){}};
+  const sync=()=>{const on=isFs();$('fsTx').textContent=on?'Exit':'Full screen';
+    $('fsIc').setAttribute('d',on?'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5':'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5')};
+  if(can){
+    $('fsBtn').hidden=false;
+    $('fsBtn').addEventListener('click',e=>{e.stopPropagation();if(isFs()){state.fsAuto=false;save();exit()}else{state.fsAuto=true;save();enter()}});
+    document.addEventListener('fullscreenchange',sync);document.addEventListener('webkitfullscreenchange',sync);
+    const auto=()=>{if(state.fsAuto&&!isFs())enter();document.removeEventListener('click',auto,true)};
+    document.addEventListener('click',auto,true);
+  }
+}
+
+resetForm();render();renderMap();
+setInterval(tick,1000);
+setInterval(()=>{renderList();applyTheme();renderSpark()},60000);
+setInterval(()=>weather(),600000);
+}
+</script>
+</body>
+</html>
