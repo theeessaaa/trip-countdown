@@ -135,9 +135,32 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
 .btns{display:flex;gap:10px;flex-wrap:wrap}
 .btn{min-height:48px;padding:0 20px;border-radius:12px;border:0;background:var(--accent);color:#fff;font:700 16px Archivo,sans-serif;cursor:pointer;flex:1}
 .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);flex:0 0 auto}
+.ver{opacity:.9}.ver b{font-weight:600}
 .hint{font-size:13px;color:var(--on-field);opacity:.8;margin:12px 4px 0}
 .err{color:var(--accent);font-size:14px;min-height:1em;margin:0}
 [hidden]{display:none!important}
+/* layout: one column on phones, two-column dashboard on wide screens */
+.wrap{display:flex;flex-direction:column}
+.col{display:contents}
+.top{order:0}.o1{order:1}.o2{order:2}.o3{order:3}.o4{order:4}.o5{order:5}.o6{order:6}.o7{order:7}.o8{order:8}.o9{order:9}
+@media(min-width:900px){
+  .wrap{max-width:1240px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);grid-template-areas:"top top" "a b" "a2 b";column-gap:28px;align-items:start;padding:28px 32px 56px}
+  .top{grid-area:top}
+  .col{display:flex;flex-direction:column;min-width:0}
+  .colA{grid-area:a}.colB{grid-area:b}.colA2{grid-area:a2}
+  .colB>section:first-child h2{margin-top:0}
+  .colA .o6 h2{margin-top:30px}
+  .colA2 h2:first-child{margin-top:30px}
+  h1{font-size:44px;margin:8px 4px 22px}
+  .unit .n{font-size:64px}
+  .code{font-size:52px}
+  .map-frame{height:460px}
+}
+@media(min-width:1280px){
+  .wrap{max-width:1400px;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,.9fr);grid-template-areas:"top top top" "a b a2" "a b a2"}
+  .colA2 h2:first-child{margin-top:0}
+}
+
 @media(max-width:400px){.row{grid-template-columns:1fr}.code{font-size:36px}}
 @media(prefers-reduced-motion:reduce){.plane{transition:none}}
 </style>
@@ -148,6 +171,8 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
   <div class="top"><h1 id="title">Days until I fly</h1>
   <div class="topbtns"><button type="button" class="fs" id="instBtn" hidden><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Install</span></button><button type="button" class="fs" id="fsBtn" hidden aria-label="Full screen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path id="fsIc" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span id="fsTx">Full screen</span></button></div></div>
 
+  <div class="col colA">
+  <section class="o1">
   <div class="card" id="pass" aria-live="polite">
     <div class="pass-top">
       <div class="route">
@@ -171,12 +196,23 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
     <div class="note" id="note"></div>
   </div>
 
+  </section>
+  <section class="o2">
   <div class="spark" id="spark" hidden>
     <p class="cheer" id="sparkCheer"></p>
     <div id="sparkFact"><div class="flbl" id="sparkFactLbl">Did you know?</div><p class="ftx" id="sparkFactTx"></p></div>
     <button type="button" class="more" id="sparkMore">Show me another</button>
   </div>
 
+  </section>
+  <section class="o6">
+  <h2>My travel map</h2>
+  <div class="card" id="mapCard"></div>
+
+  </section>
+  </div>
+  <div class="col colB">
+  <section class="o3">
   <h2>Time check</h2>
   <div class="card">
     <div class="times">
@@ -187,18 +223,25 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
     <div class="times-note" id="landNote">Pick a destination to compare times.</div>
   </div>
 
+  </section>
+  <section class="o4">
   <h2 id="wxTitle">Weather</h2>
   <div class="card wx" id="wx"><div class="wx-msg">Pick a destination to see its weather.</div></div>
 
+  </section>
+  <section class="o5">
   <h2 id="routeTitle" hidden>Airport to hotel</h2>
   <div class="card" id="route" hidden></div>
 
-  <h2>My travel map</h2>
-  <div class="card" id="mapCard"></div>
-
+  </section>
+  </div>
+  <div class="col colA2">
+  <section class="o7">
   <h2>My trips</h2>
   <div class="list" id="list"></div>
 
+  </section>
+  <section class="o8">
   <h2 id="formTitle">Add a trip</h2>
   <form class="card" id="form" novalidate>
     <label>Destination country<select id="fDestCC" required><option value="">Choose a country…</option></select></label>
@@ -238,7 +281,9 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
       <button class="btn ghost" type="button" id="cancel" hidden>Cancel</button>
     </div>
   </form>
-  <p class="hint">Trips are saved in this browser on this device. On iPhone, open the link in Safari, tap Share, then “Add to Home Screen”. On Android, use Chrome’s menu, then “Add to Home screen”.</p>
+  </section>
+  <p class="hint o9"><span class="ver">Trip Countdown <b id="appVer"></b></span><br>Trips are saved in this browser on this device. On iPhone, open the link in Safari, tap Share, then “Add to Home Screen”. On Android, use Chrome’s menu, then “Add to Home screen”.</p>
+  </div>
 </div>
 
 <script>
@@ -445,6 +490,7 @@ YE|Yemen|Asia/Aden
 ZM|Zambia|Africa/Lusaka
 ZW|Zimbabwe|Africa/Harare`;
 
+const APP_VERSION='1.2.0';
 const $=id=>document.getElementById(id);
 const okTz=tz=>{try{new Intl.DateTimeFormat('en-US',{timeZone:tz});return true}catch(e){return false}};
 const COUNTRIES=RAW.split('\n').map(l=>{const p=l.split('|');
@@ -1500,6 +1546,7 @@ $('form').addEventListener('submit',e=>{
   window.addEventListener('appinstalled',()=>{$('instBtn').hidden=true});
 }
 
+$('appVer').textContent='v'+APP_VERSION;
 resetForm();render();renderMap();
 setInterval(tick,1000);
 setInterval(()=>{renderList();applyTheme();renderSpark()},60000);

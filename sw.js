@@ -1,5 +1,5 @@
 // Trip Countdown service worker: keeps the page working offline.
-const CACHE = 'trip-countdown-v1';
+const CACHE = 'trip-countdown-1.2.0'; // change this with every release
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
