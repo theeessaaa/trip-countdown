@@ -43,7 +43,10 @@ h2{font:700 20px/1.2 Archivo,-apple-system,system-ui,sans-serif;color:var(--on-f
 .tear:before,.tear:after{content:"";position:absolute;top:-13px;width:24px;height:24px;border-radius:50%;background:var(--bg)}
 .tear:before{left:-31px}.tear:after{right:-31px}
 .clock{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:20px 16px 8px;text-align:center}
-.unit .n{font:800 clamp(32px,12vw,58px)/1 Archivo,-apple-system,sans-serif;font-variant-numeric:tabular-nums}
+.clock{container-type:inline-size}
+.clock.wide{grid-template-columns:minmax(0,1.35fr) repeat(3,minmax(0,1fr))}
+.unit .n{font:800 clamp(28px,12vw,58px)/1 Archivo,-apple-system,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+@supports(width:1cqi){.unit .n{font-size:clamp(26px,12cqi,64px)}}
 .unit:first-child .n{color:var(--accent)}
 .unit .l{font-size:13px;color:var(--muted);margin-top:6px}
 .note{padding:6px 22px 22px;text-align:center;font-size:15px;color:var(--muted)}
@@ -152,7 +155,6 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
   .colA .o6 h2{margin-top:30px}
   .colA2 h2:first-child{margin-top:30px}
   h1{font-size:44px;margin:8px 4px 22px}
-  .unit .n{font-size:64px}
   .code{font-size:52px}
   .map-frame{height:460px}
 }
@@ -186,7 +188,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
       <div class="when"><span>Departs <b id="depart">—</b></span><span id="retWrap" hidden>Returns <b id="ret">—</b></span><span id="pct"></span></div>
     </div>
     <div class="tear"></div>
-    <div class="clock">
+    <div class="clock" id="clockBox">
       <div class="unit"><div class="n" id="d">0</div><div class="l">days</div></div>
       <div class="unit"><div class="n" id="h">00</div><div class="l">hours</div></div>
       <div class="unit"><div class="n" id="m">00</div><div class="l">minutes</div></div>
@@ -490,7 +492,7 @@ YE|Yemen|Asia/Aden
 ZM|Zambia|Africa/Lusaka
 ZW|Zimbabwe|Africa/Harare`;
 
-const APP_VERSION='1.2.0';
+const APP_VERSION='1.2.1';
 const $=id=>document.getElementById(id);
 const okTz=tz=>{try{new Intl.DateTimeFormat('en-US',{timeZone:tz});return true}catch(e){return false}};
 const COUNTRIES=RAW.split('\n').map(l=>{const p=l.split('|');
@@ -542,7 +544,7 @@ function tile(prefix,tz,who,now){
   $(prefix+'Dt').innerHTML=(h>=6&&h<18?SUN:MOON)+'<span>'+esc(fmtDate(now,tz))+'</span>';
 }
 function hrs(x){const a=Math.abs(x);return (a%1?a.toFixed(a*4%2?2:1):a)+(a===1?' hr':' hrs')}
-function setCount(ms){const s=Math.floor(ms/1000);
+function setCount(ms){const s=Math.floor(ms/1000);$('clockBox').classList.toggle('wide',s>=100*86400);
   $('d').textContent=Math.floor(s/86400);$('h').textContent=pad(Math.floor(s%86400/3600));$('m').textContent=pad(Math.floor(s%3600/60));$('s').textContent=pad(s%60)}
 
 function tick(){
@@ -964,7 +966,8 @@ $('sparkMore').addEventListener('click',()=>{sparkShift++;renderSpark()});
 /* destination flag theme */
 const FLAGRAW='AF:000000,d32011,007a36;AL:e41e20,000000;DZ:006233,ffffff,d21034;AD:10069f,fedf00,d50032;AO:cc092f,000000,ffcb00;AG:ce1126,000000,0072c6;AR:74acdf,ffffff,f6b40e;AM:d90012,0033a0,f2a800;AU:012169,e4002b,ffffff;AT:ed2939,ffffff;AZ:0092bc,e4002b,00af66;BS:00abc9,fae042,000000;BH:ce1126,ffffff;BD:006a4e,f42a41;BB:00267f,ffc726,000000;BY:c8313e,4aa657;BE:000000,fdda24,ef3340;BZ:003f87,ce1126;BJ:008751,fcd116,e8112d;BT:ffd520,ff4e12;BO:d52b1e,f9e300,007934;BA:002395,fecb00;BW:75aadb,000000,ffffff;BR:009c3b,ffdf00,002776;BN:f7e017,000000,cf1126;BG:00966e,ffffff,d62612;BF:ef2b2d,009e49,fcd116;BI:ce1126,1eb53a,ffffff;CV:003893,cf2027,f7d116;KH:032ea1,e00025;CM:007a5e,ce1126,fcd116;CA:d52b1e,ffffff;CF:003082,289728,ffce00,d21034;TD:002664,fecb00,c60c30;CL:0039a6,d52b1e,ffffff;CN:ee1c25,ffff00;CO:fcd116,003893,ce1126;KM:3a75c4,fcd116,ce1126,3d8e33;CG:009543,fbde4a,dc241f;CD:007fff,f7d618,ce1021;CR:002b7f,ce1126,ffffff;CI:f77f00,ffffff,009e60;HR:ff0000,171796,ffffff;CU:002a8f,cf142b,ffffff;CY:d57800,ffffff,4e5b31;CZ:11457e,d7141a,ffffff;DK:c8102e,ffffff;DJ:6ab2e7,12ad2b,d7141a;DM:006b3f,fcd116,d41c30;DO:002d62,ce1126;EC:ffdd00,034ea2,ed1c24;EG:ce1126,000000,c09300;SV:0f47af,ffffff;GQ:3e9a00,e32118,0073ce;ER:4189dd,12ad2b,ea0437,ffc726;EE:0072ce,000000;SZ:3e5eb9,ffd900,b10c0c;ET:078930,fcdd09,da121a,0f47af;FJ:68bfe5,002868,ce1126;FI:002f6c,ffffff;FR:002654,ffffff,ed2939;GA:009e60,fcd116,3a75c4;GM:ce1126,0c1c8c,3a7728;GE:ff0000,ffffff;DE:000000,dd0000,ffce00;GH:006b3f,fcd116,ce1126;GR:0d5eaf,ffffff;GD:ce1126,007a5e,fcd116;GU:00297b,c62139;GT:4997d0,ffffff;GN:ce1126,fcd116,009460;GW:ce1126,fcd116,009e49;GY:009e49,fcd116,ce1126;HT:00209f,d21034;HN:0073cf,ffffff;HK:de2910,ffffff;HU:ce2939,ffffff,477050;IS:02529c,dc1e35,ffffff;IN:ff9933,ffffff,138808,000080;ID:ff0000,ffffff;IR:239f40,ffffff,da0000;IQ:ce1126,ffffff,000000,007a3d;IE:169b62,ffffff,ff883e;IL:0038b8,ffffff;IT:009246,ffffff,ce2b37;JM:009b3a,fed100,000000;JP:bc002d,ffffff;JO:000000,007a3d,ce1126;KZ:00afca,fec50c;KE:000000,bb0000,006600;KI:ce1126,003f87,fcd116;XK:244aa5,d0a650;KW:007a3d,ce1126,000000;KG:e8112d,ffef00;LA:ce1126,002868,ffffff;LV:9e3039,ffffff;LB:ed1c24,00a651,ffffff;LS:00209f,009543,000000;LR:bf0a30,002868,ffffff;LY:e70013,000000,239e46;LI:002b7f,ce1126,ffd83d;LT:fdb913,006a44,c1272d;LU:00a1de,ed2939,ffffff;MO:00785e,ffffff;MG:fc3d32,007e3a,ffffff;MW:ce1126,000000,339e35;MY:010066,cc0001,ffcc00;MV:d21034,007e3a,ffffff;ML:14b53a,fcd116,ce1126;MT:cf142b,ffffff;MH:003893,dd7500,ffffff;MR:006233,ffc400,d01c1f;MU:ea2839,1a206d,ffd500,00a551;MX:006847,ffffff,ce1126;FM:75b2dd,ffffff;MD:0046ae,ffd200,cc092f;MC:ce1126,ffffff;MN:c4272f,015197,f9cf02;ME:c40308,d4af3a;MA:c1272d,006233;MZ:007168,000000,fce100,d21034;MM:fecb00,34b233,ea2839;NA:003580,d21034,009543;NR:002b7f,ffc61e;NP:dc143c,003893;NL:21468b,ffffff,ae1c28;NZ:00247d,cc142b,ffffff;NI:0067c6,ffffff;NE:e05206,ffffff,0db02b;NG:008751,ffffff;KP:024fa2,ed1c27,ffffff;MK:d20000,ffe600;NO:ba0c2f,00205b,ffffff;OM:db161b,008000,ffffff;PK:01411c,ffffff;PW:0099ff,ffde00;PS:000000,ffffff,009639,ed2e38;PA:d21034,005293,ffffff;PG:ce1126,000000,fcd116;PY:d52b1e,0038a8,ffffff;PE:d91023,ffffff;PH:0038a8,ce1126,fcd116,ffffff;PL:dc143c,ffffff;PT:006600,ff0000,ffcc00;PR:0050f0,ed0000,ffffff;QA:8a1538,ffffff;RO:002b7f,fcd116,ce1126;RU:0039a6,d52b1e,ffffff;RW:00a1de,fad201,20603d;KN:009e49,000000,ce1126,fcd116;LC:66ccff,fcd116,000000;VC:0072c6,fcd116,009e60;WS:ce1126,002b7f;SM:5eb6e4,ffffff;ST:12ad2b,ffce00,d21034;SA:006c35,ffffff;SN:00853f,fdef42,e31b23;RS:c6363c,0c4076,ffffff;SC:003f87,fcd856,d62828,007a3d;SL:1eb53a,ffffff,0072c6;SG:ef3340,ffffff;SK:0b4ea2,ee1c25,ffffff;SI:005da4,ed1c24,ffffff;SB:0051ba,215b33,fcd116;SO:4189dd,ffffff;ZA:007749,001489,e03c31,ffb612;KR:cd2e3a,0047a0,ffffff;SS:078930,000000,da121a,0f47af;ES:aa151b,f1bf00;LK:8d153a,ffbe29,eb7400,00534e;SD:d21034,007229,000000;SR:377e3f,b40a2d,ecc81d;SE:006aa7,fecc00;CH:da291c,ffffff;SY:ce1126,000000,007a3d;TW:fe0000,000095,ffffff;TJ:cc0000,006600,f8c300;TZ:1eb53a,00a3dd,fcd116,000000;TH:2d2a4a,a51931,f4f5f8;TL:dc241f,ffc726,000000;TG:006a4e,ffce00,d21034;TO:c10000,ffffff;TT:ce1126,000000,ffffff;TN:e70013,ffffff;TR:e30a17,ffffff;TM:00843d,d22630,ffffff;TV:009fca,012169,ffce00;UG:d90000,fcdc04,000000;UA:0057b7,ffd700;AE:00732f,ffffff,000000,ff0000;GB:012169,c8102e,ffffff;US:0a3161,b31942,ffffff;UY:0038a8,ffffff,fcd116;UZ:0099b5,1eb53a,ffffff,ce1126;VU:d21034,009543,000000,fdce12;VA:ffe000,ffffff;VE:003893,ffcc00,cf142b;VN:da251d,ffff00;YE:ce1126,ffffff,000000;ZM:198a00,de2010,000000,ef7d00;ZW:006400,ffd200,d40000,000000';
 const FLAGS={};FLAGRAW.split(';').forEach(p=>{const q=p.split(':');FLAGS[q[0]]=q[1].split(',')});
-const flagEmoji=cc=>/^[A-Z]{2}$/.test(cc||'')?String.fromCodePoint(...[...cc].map(c=>127397+c.charCodeAt(0))):'';
+const FLAGS_OK=(()=>{try{const c=document.createElement('canvas');c.width=c.height=20;const x=c.getContext('2d');x.font='16px sans-serif';x.textBaseline='top';x.fillText('\u{1F1F5}\u{1F1ED}',0,0);const d=x.getImageData(0,0,20,20).data;for(let i=0;i<d.length;i+=4){if(d[i+3]&&(Math.abs(d[i]-d[i+1])>40||Math.abs(d[i+1]-d[i+2])>40))return true}return false}catch(e){return true}})();
+const flagEmoji=cc=>FLAGS_OK&&/^[A-Z]{2}$/.test(cc||'')?String.fromCodePoint(...[...cc].map(c=>127397+c.charCodeAt(0))):'';
 const rgb=h=>[0,2,4].map(i=>parseInt(h.substr(i,2),16));
 const hex=a=>'#'+a.map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
 const lum=a=>{const f=a.map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*f[0]+.7152*f[1]+.0722*f[2]};
