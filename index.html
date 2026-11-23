@@ -7,6 +7,10 @@
 <meta name="apple-mobile-web-app-title" content="Trip Countdown">
 <meta name="theme-color" content="#0d5d66">
 <title>Trip Countdown</title>
+<meta name="description" content="My personal countdown to every trip, with weather, local time and arrival plans.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -105,6 +109,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
 .ftx{margin:4px 0 12px;font-size:16px;line-height:1.5}
 .more{min-height:40px;padding:0 14px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:transparent;color:var(--on-field);font:600 14px Inter,sans-serif;cursor:pointer}
 .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.topbtns{display:flex;flex-direction:column;gap:8px;align-items:flex-end;flex:none}
 .fs{flex:none;display:flex;align-items:center;gap:6px;min-height:40px;margin-top:8px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:transparent;color:var(--on-field);font:600 13px Inter,sans-serif;cursor:pointer}
 :fullscreen body,:-webkit-full-screen body{overflow-y:auto}
 .flagbar{position:fixed;top:0;left:0;right:0;height:6px;z-index:5}
@@ -141,7 +146,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
 <div class="flagbar" id="flagBar" hidden></div>
 <div class="wrap">
   <div class="top"><h1 id="title">Days until I fly</h1>
-  <button type="button" class="fs" id="fsBtn" hidden aria-label="Full screen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path id="fsIc" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span id="fsTx">Full screen</span></button></div>
+  <div class="topbtns"><button type="button" class="fs" id="instBtn" hidden><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Install</span></button><button type="button" class="fs" id="fsBtn" hidden aria-label="Full screen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path id="fsIc" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span id="fsTx">Full screen</span></button></div></div>
 
   <div class="card" id="pass" aria-live="polite">
     <div class="pass-top">
@@ -1475,13 +1480,24 @@ $('form').addEventListener('submit',e=>{
   const exit=()=>{try{const p=(document.exitFullscreen||document.webkitExitFullscreen).call(document);if(p&&p.catch)p.catch(()=>{})}catch(e){}};
   const sync=()=>{const on=isFs();$('fsTx').textContent=on?'Exit':'Full screen';
     $('fsIc').setAttribute('d',on?'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5':'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5')};
-  if(can){
+  const standalone=window.matchMedia&&matchMedia('(display-mode: standalone)').matches;
+  if(can&&!standalone){
     $('fsBtn').hidden=false;
     $('fsBtn').addEventListener('click',e=>{e.stopPropagation();if(isFs()){state.fsAuto=false;save();exit()}else{state.fsAuto=true;save();enter()}});
     document.addEventListener('fullscreenchange',sync);document.addEventListener('webkitfullscreenchange',sync);
     const auto=()=>{if(state.fsAuto&&!isFs())enter();document.removeEventListener('click',auto,true)};
     document.addEventListener('click',auto,true);
   }
+}
+
+/* installable app (GitHub copy): offline cache + install button */
+{
+  const hosted=location.protocol==='https:'&&!/claude|anthropic/i.test(location.hostname);
+  if(hosted&&'serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+  let deferred=null;
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('instBtn').hidden=false});
+  $('instBtn').addEventListener('click',async()=>{if(!deferred)return;deferred.prompt();try{await deferred.userChoice}catch(e){}deferred=null;$('instBtn').hidden=true});
+  window.addEventListener('appinstalled',()=>{$('instBtn').hidden=true});
 }
 
 resetForm();render();renderMap();
