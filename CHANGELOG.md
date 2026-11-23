@@ -7,6 +7,11 @@ Versions follow [Semantic Versioning](https://semver.org/): **MAJOR.MINOR.PATCH*
 - **MINOR**: new features
 - **PATCH**: small fixes
 
+## [1.2.1] - 2026-11-23
+### Fixed
+- Countdown numbers overlapping when there are 100+ days left (days now get more room and numbers scale to fit)
+- Flags showing as plain letters (like "PH") on computers that can't display flag emoji, such as Windows; they're now hidden there
+
 ## [1.2.0] - 2026-11-23
 ### Added
 - Wide-screen dashboard layout: two columns on tablets, three columns on laptops and desktops
